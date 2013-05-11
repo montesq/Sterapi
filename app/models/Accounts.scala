@@ -7,6 +7,6 @@ import play.api.libs.functional.syntax._
 object Accounts {
   val validateAccount: Reads[JsObject] = (
     (__ \ 'technical_name).json.pickBranch and
-    (__ \ 'name).json.pickBranch
+      (__ \ 'name).json.pickBranch
     ).reduce
 }
