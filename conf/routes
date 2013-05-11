@@ -1,0 +1,20 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+POST   /accounts                      controllers.Accounts.createAccount
+GET    /accounts                      controllers.Accounts.listAccounts
+GET    /accounts/:id                  controllers.Accounts.getAccount(id: String)
+PUT    /accounts/:id                  controllers.Accounts.updateAccount(id: String)
+GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
+PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
+DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
+
+POST   /sterilizations                      controllers.Sterilizations.createSterilization
+GET    /sterilizations                      controllers.Sterilizations.listSterilizations
+GET    /sterilizations/:id                  controllers.Sterilizations.getSterilization(id: String)
+PUT    /sterilizations/:id                  controllers.Sterilizations.updateSterilization(id: String)
+GET    /sterilizations/account/:accountId/  controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET    /assets/*file               controllers.Assets.at(path="/public", file)
