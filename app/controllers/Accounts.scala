@@ -8,14 +8,14 @@ import models.Accounts._
 
 object Accounts extends Controller with MongoController {
 
-  val collection = db.collection[JSONCollection]("accounts")
+  val accountsColl = db.collection[JSONCollection]("accounts")
 
   def createAccount = Action(parse.json) {
     request =>
       request.body.transform(validateAccount).map {
         json =>
           Async {
-            collection.insert(json).map {
+            accountsColl.insert(json).map {
               lastError =>
                 Created
             }.recover {
@@ -29,16 +29,34 @@ object Accounts extends Controller with MongoController {
       }
   }
 
-  def listAccounts = TODO
+  def listAccounts = Action {
+    Async {
+      val accountsList = accountsColl.find(Json.obj()).cursor[JsObject].toList
+      accountsList.map {
+        list =>
+          Ok(Json.arr(list))
+      }.recover {
+        case e =>
+          InternalServerError(JsString("exception %s".format(e.getMessage)))
+      }
+    }
+  }
 
-  def getAccount(id: String) = TODO
+  def getAccount(id: String) = Action {
+    Async {
+      accountsColl.find(Json.obj("technical_name" -> id)).one[JsObject].map {
+        e =>
+          e match {
+            case Some(account) => Ok(account)
+            case None => NoContent
+          }
+      }.recover {
+        case e =>
+          InternalServerError(JsString("exception %s".format(e.getMessage)))
+      }
+    }
+  }
 
   def updateAccount(id: String) = TODO
-
-  def getAccountContacts(id: String) = TODO
-
-  def addAccountContact(idAccount: String, idContact: String) = TODO
-
-  def removeAccountContact(idAccount: String, idContact: String) = TODO
 
 }

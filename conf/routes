@@ -6,9 +6,9 @@ POST   /accounts                      controllers.Accounts.createAccount
 GET    /accounts                      controllers.Accounts.listAccounts
 GET    /accounts/:id                  controllers.Accounts.getAccount(id: String)
 PUT    /accounts/:id                  controllers.Accounts.updateAccount(id: String)
-GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
-PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
-DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
+#GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
+#PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
+#DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
 
 POST   /sterilizations                      controllers.Sterilizations.createSterilization
 GET    /sterilizations                      controllers.Sterilizations.listSterilizations
