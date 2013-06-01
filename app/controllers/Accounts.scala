@@ -2,20 +2,29 @@ package controllers
 
 import play.api.mvc._
 import play.api.libs.json._
-import play.modules.reactivemongo._
+import reactivemongo.api.indexes._
 import play.modules.reactivemongo.json.collection.JSONCollection
 import models.Accounts._
-import models.Utils._
+import models.Common._
+import Utils.DBConnection
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object Accounts extends Controller with MongoController {
 
-  val accountsColl = db.collection[JSONCollection]("accounts")
+object Accounts extends Controller {
+
+  val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
+
+  accountsColl.indexesManager.ensure(
+    Index(Seq("status" -> IndexType.Ascending), None))
 
   def createAccount = Action(parse.json) {
     request =>
-      request.body.transform(validateAccount andThen
-        addStatus(activeStatus) andThen
-        addTrailingDates).map {
+      request.body.transform(
+        validateAccount andThen
+          addId andThen
+          addStatus(activeStatus) andThen
+          addTrailingDates)
+        .map {
         json =>
           Async {
             accountsColl.insert(json).map {
@@ -31,14 +40,14 @@ object Accounts extends Controller with MongoController {
 
   def listAccounts = Action {
     Async {
-      val accountsList = accountsColl.find(Json.obj())
-        .sort(Json.obj("id" -> 1,
-        "status" -> activeStatus))
+      val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
+        .sort(Json.obj("_id" -> 1))
         .cursor[JsObject]
         .toList
-      accountsList.map {
+      accountsFutureList.map {
         list =>
-          Ok(Json.arr(list))
+          val transformedList = for (account <- list) yield account.transform(outputAccount).get
+          Ok(JsArray(transformedList))
       }.recover {
         case e =>
           InternalServerError(JsString("exception %s".format(e.getMessage)))
@@ -48,11 +57,11 @@ object Accounts extends Controller with MongoController {
 
   def getAccount(id: String) = Action {
     Async {
-      accountsColl.find(Json.obj("id" -> id)).one[JsObject].map {
+      accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
         mayAccount =>
           mayAccount match {
-            case Some(account) => Ok(account)
-            case None => NoContent
+            case Some(account) => Ok(account.transform(outputAccount).get)
+            case None => NotFound
           }
       }.recover {
         case e =>
@@ -69,7 +78,7 @@ object Accounts extends Controller with MongoController {
             updateSelector =>
               Async {
                 accountsColl.update(
-                  Json.obj("id" -> id),
+                  Json.obj("_id" -> Json.obj("$oid" -> id)),
                   updateSelector
                 ).map {
                   lastError =>
@@ -85,13 +94,4 @@ object Accounts extends Controller with MongoController {
           BadRequest(JsError.toFlatJson(e))
       }
   }
-
 }
-
-
-//import org.joda.time._
-//import org.joda.time.format.ISODateTimeFormat
-//import java.lang.Long
-//val date = new DateTime(new Long("1369499656000"))
-//val dateFormatter = ISODateTimeFormat.dateTime()
-//Ok(dateFormatter.print(date))
