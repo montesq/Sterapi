@@ -85,11 +85,15 @@ class AccountSpec extends Specification {
       json2 must equalTo(json)
     }
 
-    //TODO looks like a bug https://github.com/zenexity/Play-ReactiveMongo/issues/34
-    //    "return a 500 error if the id doesn't exist" in new WithApplication{
-    //      val Some(result) = route(FakeRequest(GET, "/accounts/12345"))
-    //      status(result) must beEqualTo(INTERNAL_SERVER_ERROR)
-    //    }
+    "return a 404 error if the id is not a Mongo ObjectId" in new WithApplication{
+      val Some(result) = route(FakeRequest(GET, "/accounts/azerty"))
+      status(result) must beEqualTo(NOT_FOUND)
+    }
+
+    "return a 404 error if the id is not in the database" in new WithApplication{
+      val Some(result) = route(FakeRequest(GET, "/accounts/51abb041ae01081d007afa11"))
+      status(result) must beEqualTo(NOT_FOUND)
+    }
   }
 
   "PUT /accounts/:id" should {

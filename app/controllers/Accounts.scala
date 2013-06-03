@@ -3,6 +3,7 @@ package controllers
 import play.api.mvc._
 import play.api.libs.json._
 import reactivemongo.api.indexes._
+import reactivemongo.bson.BSONObjectID
 import play.modules.reactivemongo.json.collection.JSONCollection
 import models.Accounts._
 import models.Common._
@@ -56,18 +57,17 @@ object Accounts extends Controller {
   }
 
   def getAccount(id: String) = Action {
-    Async {
-      accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
-        mayAccount =>
-          mayAccount match {
+      if (BSONObjectID.parse(id).isSuccess) {
+        Async {
+          accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
             case Some(account) => Ok(account.transform(outputAccount).get)
             case None => NotFound
+          }.recover {
+            case e =>
+              InternalServerError(JsString("exception %s".format(e.getMessage)))
           }
-      }.recover {
-        case e =>
-          InternalServerError(JsString("exception %s".format(e.getMessage)))
-      }
-    }
+        }
+      } else NotFound
   }
 
   def updateAccount(id: String) = Action(parse.json) {
