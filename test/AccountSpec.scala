@@ -8,7 +8,7 @@ import helper._
 
 import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
-import Utils.DBConnection
+import utils.DBConnection
 
 class AccountSpec extends Specification {
 

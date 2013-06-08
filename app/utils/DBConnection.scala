@@ -1,4 +1,4 @@
-package Utils
+package utils
 
 import reactivemongo.api.MongoDriver
 import scala.concurrent.ExecutionContext.Implicits.global

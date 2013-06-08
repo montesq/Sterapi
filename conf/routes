@@ -2,6 +2,7 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+GET    /                              controllers.test.test
 POST   /accounts                      controllers.Accounts.createAccount
 GET    /accounts                      controllers.Accounts.listAccounts
 GET    /accounts/:id                  controllers.Accounts.getAccount(id: String)
