@@ -5,6 +5,7 @@ import play.api.mvc.{Results, Result, Request}
 import be.objectify.deadbolt.scala.{DynamicResourceHandler, DeadboltHandler}
 import be.objectify.deadbolt.core.models.Subject
 import play.api.Play.current
+import play.api.libs.Crypto._
 
 class SecurityHandler extends DeadboltHandler {
 
@@ -17,7 +18,7 @@ class SecurityHandler extends DeadboltHandler {
   }
 
   override def getSubject[A](request: Request[A]): Option[Subject] = {
-    Cache.getAs[User]("User." + request.session.get("email").toString)
+    Cache.getAs[User]("User." + decryptAES(request.session.get("email").toString))
   }
 
   def onAuthFailure[A](request: Request[A]): Result = {

@@ -4,14 +4,14 @@ import scala.collection.immutable.Map
 import be.objectify.deadbolt.core.models.Subject
 import play.libs.Scala
 
-case class User(userName: String, rolesList: List[UserRole]) extends Subject {
+case class User(userName: String,
+                rolesList: List[UserRole],
+                private val _permissionsList: List[UserPermission] = Nil) extends Subject {
+  val permissionsList = _permissionsList ::: rolesList.flatMap(getPermissionsByRole(_))
+
   def getRoles: java.util.List[UserRole] = Scala.asJava(rolesList)
 
-  def getPermissions: java.util.List[UserPermission] = {
-    Scala.asJava(
-      rolesList.flatMap(getPermissionsByRole(_))
-    )
-  }
+  def getPermissions: java.util.List[UserPermission] = Scala.asJava(permissionsList)
 
   def getIdentifier: String = userName
 

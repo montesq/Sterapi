@@ -28,7 +28,6 @@ class AccountSpec extends Specification {
       status(result) must equalTo(CREATED)
       val jsonResult = Json.parse(contentAsString(result))
       (__ \ "status")(jsonResult) must contain(JsString("ACTIVE"))
-
     }
 
     "generate an error when name is missing" in new WithApplication {
