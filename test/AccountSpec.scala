@@ -5,7 +5,11 @@ import play.api.test.Helpers._
 import play.api.test.FakeRequest
 import play.api.libs.json._
 import helper._
-
+import play.api.cache.Cache
+import play.api.libs.Crypto._
+import play.api.mvc.Cookie
+import play.api.Play.current
+import security.{UserRight, User}
 import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
@@ -20,10 +24,16 @@ class AccountSpec extends Specification {
     "contacts" -> List("1", "2", "3", "4")
   )
 
+  val emailUser = "test@test.fr"
+  def authCookie = new Cookie("auth", emailUser)
+  def setCache = Cache.set("User." + emailUser, User(emailUser, List(UserRight("MANAGE_ACCOUNT"))))
+
   "POST /accounts" should {
     "insert a new account with the status ACTIVE" in new WithApplication {
-      val Some(result) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(defaultAccountJson))
+      setCache
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie))
 
       status(result) must equalTo(CREATED)
       val jsonResult = Json.parse(contentAsString(result))

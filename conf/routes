@@ -3,6 +3,9 @@
 # ~~~~
 
 GET    /                              controllers.test.test
+#POST   /login                         controllers.Auth.login
+#POST   /logout                        controllers.Auth.logout
+
 POST   /accounts                      controllers.Accounts.createAccount
 GET    /accounts                      controllers.Accounts.listAccounts
 GET    /accounts/:id                  controllers.Accounts.getAccount(id: String)

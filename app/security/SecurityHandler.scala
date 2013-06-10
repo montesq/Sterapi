@@ -1,13 +1,15 @@
 package security
 
 import play.api.cache.Cache
-import play.api.mvc.{Results, Result, Request}
+import play.api.mvc._
 import be.objectify.deadbolt.scala.{DynamicResourceHandler, DeadboltHandler}
 import be.objectify.deadbolt.core.models.Subject
 import play.api.Play.current
 import play.api.libs.Crypto._
 
 class SecurityHandler extends DeadboltHandler {
+
+  val cookieAuthAttribute = "auth"
 
   def beforeAuthCheck[A](request: Request[A]) = None
 
@@ -18,7 +20,11 @@ class SecurityHandler extends DeadboltHandler {
   }
 
   override def getSubject[A](request: Request[A]): Option[Subject] = {
-    Cache.getAs[User]("User." + decryptAES(request.session.get("email").toString))
+//    Some(User("test@test.Fr", Nil))
+    request.session.get(cookieAuthAttribute) match {
+      case Some(s) => Cache.getAs[User]("User." + s)
+      case _       => None
+    }
   }
 
   def onAuthFailure[A](request: Request[A]): Result = {

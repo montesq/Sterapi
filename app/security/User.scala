@@ -1,36 +1,42 @@
 package security
 
 import scala.collection.immutable.Map
-import be.objectify.deadbolt.core.models.Subject
+import be.objectify.deadbolt.core.models.{Role, Subject}
 import play.libs.Scala
 
 case class User(userName: String,
-                rolesList: List[UserRole],
-                private val _permissionsList: List[UserPermission] = Nil) extends Subject {
-  val permissionsList = _permissionsList ::: rolesList.flatMap(getPermissionsByRole(_))
+                _rolesList: List[Role] = Nil) extends Subject {
+  val rolesList = convertRolesToRights(_rolesList)
 
-  def getRoles: java.util.List[UserRole] = Scala.asJava(rolesList)
+  def getRoles: java.util.List[Role] = Scala.asJava(rolesList)
 
-  def getPermissions: java.util.List[UserPermission] = Scala.asJava(permissionsList)
+  //Permissions are not used
+  def getPermissions = Scala.asJava(Nil)
 
   def getIdentifier: String = userName
 
-  def getPermissionsByRole(role: UserRole): List[UserPermission] = {
-    val roleToPermissions = Map(
-      UserRole("ADMIN") -> List(
-        UserPermission("MANAGE_ACCOUNTS"),
-        UserPermission("MANAGE_STERILIZATIONS")
-      ),
-      UserRole("STERILIZATION_MANAGER") -> List(
-        UserPermission("MANAGE_ACCOUNTS"),
-        UserPermission("MANAGE_STERILIZATIONS")
-      ),
-      UserRole("STERILIZATION_CLIENT") -> List(
-        UserPermission("READ_STERILIZATIONS")
-      )
-    )
-
-    roleToPermissions.getOrElse(role, Nil)
+  def convertRolesToRights(roles: List[Role]): List[UserRight] = {
+    roles match {
+      case Nil => Nil
+      case UserRight(r) :: t => UserRight(r) :: convertRolesToRights(t)
+      case UserProfile(p) :: t => convertRolesToRights(
+          ProfilesRights.matrix.getOrElse(UserProfile(p), Nil)
+        ) ::: convertRolesToRights(t)
+      case _ => Nil
+    }
   }
+}
+
+object ProfilesRights {
+  val matrix: Map[Role, List[Role]] = Map(
+    UserProfile("ADMIN") -> List(
+      UserProfile("STERILIZATION_MANAGER"),
+      UserProfile("STERILIZATION_CLIENT")),
+    UserProfile("STERILIZATION_MANAGER") -> List(
+      UserRight("MANAGE_ACCOUNTS"),
+      UserRight("MANAGE_STERILIZATIONS")),
+    UserProfile("STERILIZATION_CLIENT") -> List(
+      UserRight("READ_STERILIZATIONS"))
+  )
 }
 

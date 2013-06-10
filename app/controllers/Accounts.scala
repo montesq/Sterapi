@@ -9,31 +9,36 @@ import models.Accounts._
 import models.Common._
 import utils.DBConnection
 import scala.concurrent.ExecutionContext.Implicits.global
+import security.SecurityHandler
+import be.objectify.deadbolt.core.PatternType
+import be.objectify.deadbolt.scala.DeadboltActions
 
 
-object Accounts extends Controller {
+object Accounts extends Controller with DeadboltActions {
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
 
   accountsColl.indexesManager.ensure(
     Index(Seq("status" -> IndexType.Ascending), None))
 
-  def createAccount = Action(parse.json) { request =>
-    request.body.transform(
-      validateAccount andThen
-        addId andThen
-        addStatus(activeStatus) andThen
-        addTrailingDates)
-      .map { json =>
+  def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    Action(parse.json) { request =>
+      request.body.transform(
+        validateAccount andThen
+          addId andThen
+          addStatus(activeStatus) andThen
+          addTrailingDates)
+        .map { json =>
         Async {
           accountsColl.insert(json).map { lastError =>
             Created(json.transform(outputAccount).get)
           }
         }
-    }.recoverTotal { err =>
-      BadRequest(JsError.toFlatJson(err))
+      }.recoverTotal { err =>
+        BadRequest(JsError.toFlatJson(err))
+      }
     }
-  }
+//  }
 
   def listAccounts = Action {
     Async {
