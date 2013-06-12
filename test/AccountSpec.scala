@@ -25,15 +25,17 @@ class AccountSpec extends Specification {
   )
 
   val emailUser = "test@test.fr"
-  def authCookie = new Cookie("auth", emailUser)
-  def setCache = Cache.set("User." + emailUser, User(emailUser, List(UserRight("MANAGE_ACCOUNT"))))
+  val manageAccountsRight = "MANAGE_ACCOUNTS"
+  def authCookie(email: String) = new Cookie("auth", email)
+  def setCache(email: String, right: String) =
+    Cache.set("User." + email, User(email, List(UserRight(right))))
 
   "POST /accounts" should {
     "insert a new account with the status ACTIVE" in new WithApplication {
-      setCache
+      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie))
+        .withCookies(authCookie(emailUser)))
 
       status(result) must equalTo(CREATED)
       val jsonResult = Json.parse(contentAsString(result))
@@ -41,21 +43,34 @@ class AccountSpec extends Specification {
     }
 
     "generate an error when name is missing" in new WithApplication {
+      setCache(emailUser, "MANAGE_ACCOUNTS")
       val accountWithoutName = defaultAccountJson.transform((__ \ "name").json.prune)
 
-      val Some(result) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(accountWithoutName.get))
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(accountWithoutName.get)
+        .withCookies(authCookie(emailUser)))
       val errJson = Json.parse(contentAsString(result))
       status(result) must equalTo(BAD_REQUEST)
       (__ \ "obj.name")(errJson) must containAnyOf(Seq(ErrorValidation.missingPath))
+    }
+
+    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
+
+      status(result) must equalTo(FORBIDDEN)
     }
   }
 
   "GET /accounts" should {
     "generate empty array when the collection is empty" in new WithApplication {
+      setCache(emailUser, "MANAGE_ACCOUNTS")
       accountsColl.drop()
 
-      val Some(result) = route(FakeRequest(GET, "/accounts"))
+      val Some(result) = route(FakeRequest(GET, "/accounts")
+        .withCookies(authCookie(emailUser)))
 
       status(result) must equalTo(OK)
       val jsonResult = Json.parse(contentAsString(result))
@@ -63,31 +78,47 @@ class AccountSpec extends Specification {
     }
 
     "return accounts that have just been inserted" in new WithApplication {
-      val Some(result1) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(defaultAccountJson))
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result1) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
       val account1 = Json.parse(contentAsString(result1))
 
-      val Some(result2) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(defaultAccountJson))
+      val Some(result2) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
       val account2 = Json.parse(contentAsString(result2))
 
-      val Some(result3) = route(FakeRequest(GET, "/accounts"))
+      val Some(result3) = route(FakeRequest(GET, "/accounts")
+        .withCookies(authCookie(emailUser)))
 
       status(result3) must equalTo(OK)
       val listJsonAccounts = Json.parse(contentAsString(result3))
       listJsonAccounts.as[JsArray].value must contain(account1)
       listJsonAccounts.as[JsArray].value must contain(account2)
     }
+
+    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
+      val Some(result) = route(FakeRequest(GET, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
+
+      status(result) must equalTo(FORBIDDEN)
+    }
   }
 
   "GET /accounts/:id" should {
     "return the json of the inserted account" in new WithApplication {
-      val Some(result) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(defaultAccountJson))
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
-      val Some(result2) = route(FakeRequest(GET, "/accounts/" + id))
+      val Some(result2) = route(FakeRequest(GET, "/accounts/" + id)
+        .withCookies(authCookie(emailUser)))
       status(result2) must equalTo(OK)
 
       val json2 = Json.parse(contentAsString(result2))
@@ -95,23 +126,46 @@ class AccountSpec extends Specification {
     }
 
     "return a 404 error if the id is not a Mongo ObjectId" in new WithApplication{
-      val Some(result) = route(FakeRequest(GET, "/accounts/azerty"))
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result) = route(FakeRequest(GET, "/accounts/azerty")
+        .withCookies(authCookie(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
     }
 
     "return a 404 error if the id is not in the database" in new WithApplication{
-      val Some(result) = route(FakeRequest(GET, "/accounts/51abb041ae01081d007afa11"))
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result) = route(FakeRequest(GET, "/accounts/51abb041ae01081d007afa11")
+        .withCookies(authCookie(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
+    }
+
+    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      Cache.set("User." + emailUser, User(emailUser, List(UserRight("MANAGE_ACCOUNTS"))))
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
+      val json = Json.parse(contentAsString(result))
+      val id = (__ \ "_id")(json).head.as[String]
+
+      val unauthorizedUser = "unauthorized@test.fr"
+      Cache.set("User." + unauthorizedUser, User(unauthorizedUser, List(UserRight("OTHER_RIGHT"))))
+      val Some(result2) = route(FakeRequest(GET, "/accounts/" + id)
+        .withCookies(authCookie(unauthorizedUser)))
+      status(result2) must equalTo(FORBIDDEN)
     }
   }
 
   "PUT /accounts/:id" should {
     "update the fields" in new WithApplication {
-      val Some(result) = route(FakeRequest(POST, "/accounts").
-        withJsonBody(defaultAccountJson))
+      // First request to create an account
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
+      // Second request to update the account
       val newJson = defaultAccountJson.transform(
         __.json.update(
           (__ \ "name").json
@@ -122,16 +176,36 @@ class AccountSpec extends Specification {
           )
       ).get
 
-      val Some(result2) = route(FakeRequest(PUT, "/accounts/" + id).
-        withJsonBody(newJson))
+      val Some(result2) = route(FakeRequest(PUT, "/accounts/" + id)
+        .withJsonBody(newJson)
+        .withCookies(authCookie(emailUser)))
       val json2 = Json.parse(contentAsString(result2))
       status(result2) must equalTo(OK)
 
-      val Some(result3) = route(FakeRequest(GET, "/accounts/" + id))
+      // Third request to check that the account has been correctly updated
+      val Some(result3) = route(FakeRequest(GET, "/accounts/" + id)
+        .withCookies(authCookie(emailUser)))
       val json3 = Json.parse(contentAsString(result3))
       (__ \ "name")(json3) must contain(JsString("Free Software Company"))
       (__ \ "contacts")(json3) must contain(JsArray(Seq(JsString("5"), JsString("6"))))
       (__ \ "modified_on")(json3) must not equalTo (((__ \ "created_on")(json3)))
+    }
+
+    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      // First request to create the account
+      setCache(emailUser, "MANAGE_ACCOUNTS")
+      val Some(result) = route(FakeRequest(POST, "/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withCookies(authCookie(emailUser)))
+      val json = Json.parse(contentAsString(result))
+      val id = (__ \ "_id")(json).head.as[String]
+
+      // Second request to check the unauthorized user get a 403 error
+      val unauthorizedUser = "unauthorized@test.fr"
+      setCache(unauthorizedUser, "MANAGE_ACCOUNTS")
+      val Some(result2) = route(FakeRequest(PUT, "/accounts/" + id)
+        .withJsonBody(json)
+        .withCookies(authCookie(unauthorizedUser)))
     }
   }
 }

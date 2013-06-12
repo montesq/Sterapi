@@ -21,7 +21,7 @@ object Accounts extends Controller with DeadboltActions {
   accountsColl.indexesManager.ensure(
     Index(Seq("status" -> IndexType.Ascending), None))
 
-  def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+  def createAccount = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     Action(parse.json) { request =>
       request.body.transform(
         validateAccount andThen
@@ -38,24 +38,27 @@ object Accounts extends Controller with DeadboltActions {
         BadRequest(JsError.toFlatJson(err))
       }
     }
-//  }
+  }
 
-  def listAccounts = Action {
-    Async {
-      val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
-        .sort(Json.obj("_id" -> 1))
-        .cursor[JsObject]
-        .toList
-      accountsFutureList.map { list =>
-        val transformedList = for (account <- list) yield account.transform(outputAccount).get
-        Ok(JsArray(transformedList))
-      }.recover { case e =>
-        InternalServerError(JsString("exception %s".format(e.getMessage)))
+  def listAccounts = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    Action {
+      Async {
+        val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
+          .sort(Json.obj("_id" -> 1))
+          .cursor[JsObject]
+          .toList
+        accountsFutureList.map { list =>
+          val transformedList = for (account <- list) yield account.transform(outputAccount).get
+          Ok(JsArray(transformedList))
+        }.recover { case e =>
+          InternalServerError(JsString("exception %s".format(e.getMessage)))
+        }
       }
     }
   }
 
-  def getAccount(id: String) = Action {
+  def getAccount(id: String) = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    Action {
       if (BSONObjectID.parse(id).isSuccess) {
         Async {
           accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
@@ -66,25 +69,28 @@ object Accounts extends Controller with DeadboltActions {
           }
         }
       } else NotFound
+    }
   }
 
-  def updateAccount(id: String) = Action(parse.json) { request =>
-    request.body.transform(validateAccount).flatMap { jsobj =>
-      jsobj.transform(toUpdate).map { updateSelector =>
-        Async {
-          accountsColl.update(
-            Json.obj("_id" -> Json.obj("$oid" -> id)),
-            updateSelector
-          ).map { lastError =>
-            if (lastError.ok)
-              Ok(updateSelector)
-            else
-              InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+  def updateAccount(id: String) = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    Action(parse.json) { request =>
+      request.body.transform(validateAccount).flatMap { jsobj =>
+        jsobj.transform(toUpdate).map { updateSelector =>
+          Async {
+            accountsColl.update(
+              Json.obj("_id" -> Json.obj("$oid" -> id)),
+              updateSelector
+            ).map { lastError =>
+              if (lastError.ok)
+                Ok(updateSelector)
+              else
+                InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+            }
           }
         }
+      }.recoverTotal { e =>
+        BadRequest(JsError.toFlatJson(e))
       }
-    }.recoverTotal { e =>
-      BadRequest(JsError.toFlatJson(e))
     }
   }
 }
