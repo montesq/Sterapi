@@ -7,7 +7,7 @@ import play.api.libs.json._
 import helper._
 import play.api.cache.Cache
 import play.api.libs.Crypto._
-import play.api.mvc.Cookie
+import play.api.mvc.Session
 import play.api.Play.current
 import security.{UserRight, User}
 import play.modules.reactivemongo.json.collection.JSONCollection
@@ -26,7 +26,7 @@ class AccountSpec extends Specification {
 
   val emailUser = "test@test.fr"
   val manageAccountsRight = "MANAGE_ACCOUNTS"
-  def authCookie(email: String) = new Cookie("auth", email)
+  def session(email: String) = ("auth", email)
   def setCache(email: String, right: String) =
     Cache.set("User." + email, User(email, List(UserRight(right))))
 
@@ -35,7 +35,7 @@ class AccountSpec extends Specification {
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
 
       status(result) must equalTo(CREATED)
       val jsonResult = Json.parse(contentAsString(result))
@@ -48,7 +48,7 @@ class AccountSpec extends Specification {
 
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(accountWithoutName.get)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val errJson = Json.parse(contentAsString(result))
       status(result) must equalTo(BAD_REQUEST)
       (__ \ "obj.name")(errJson) must containAnyOf(Seq(ErrorValidation.missingPath))
@@ -58,7 +58,7 @@ class AccountSpec extends Specification {
       Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
 
       status(result) must equalTo(FORBIDDEN)
     }
@@ -70,7 +70,7 @@ class AccountSpec extends Specification {
       accountsColl.drop()
 
       val Some(result) = route(FakeRequest(GET, "/accounts")
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
 
       status(result) must equalTo(OK)
       val jsonResult = Json.parse(contentAsString(result))
@@ -81,16 +81,16 @@ class AccountSpec extends Specification {
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result1) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val account1 = Json.parse(contentAsString(result1))
 
       val Some(result2) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val account2 = Json.parse(contentAsString(result2))
 
       val Some(result3) = route(FakeRequest(GET, "/accounts")
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
 
       status(result3) must equalTo(OK)
       val listJsonAccounts = Json.parse(contentAsString(result3))
@@ -102,7 +102,7 @@ class AccountSpec extends Specification {
       Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
       val Some(result) = route(FakeRequest(GET, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
 
       status(result) must equalTo(FORBIDDEN)
     }
@@ -113,12 +113,12 @@ class AccountSpec extends Specification {
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
       val Some(result2) = route(FakeRequest(GET, "/accounts/" + id)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       status(result2) must equalTo(OK)
 
       val json2 = Json.parse(contentAsString(result2))
@@ -128,14 +128,14 @@ class AccountSpec extends Specification {
     "return a 404 error if the id is not a Mongo ObjectId" in new WithApplication{
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(GET, "/accounts/azerty")
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
     }
 
     "return a 404 error if the id is not in the database" in new WithApplication{
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(GET, "/accounts/51abb041ae01081d007afa11")
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
     }
 
@@ -143,14 +143,14 @@ class AccountSpec extends Specification {
       Cache.set("User." + emailUser, User(emailUser, List(UserRight("MANAGE_ACCOUNTS"))))
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
       val unauthorizedUser = "unauthorized@test.fr"
       Cache.set("User." + unauthorizedUser, User(unauthorizedUser, List(UserRight("OTHER_RIGHT"))))
       val Some(result2) = route(FakeRequest(GET, "/accounts/" + id)
-        .withCookies(authCookie(unauthorizedUser)))
+        .withSession(session(unauthorizedUser)))
       status(result2) must equalTo(FORBIDDEN)
     }
   }
@@ -161,7 +161,7 @@ class AccountSpec extends Specification {
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
@@ -178,13 +178,13 @@ class AccountSpec extends Specification {
 
       val Some(result2) = route(FakeRequest(PUT, "/accounts/" + id)
         .withJsonBody(newJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json2 = Json.parse(contentAsString(result2))
       status(result2) must equalTo(OK)
 
       // Third request to check that the account has been correctly updated
       val Some(result3) = route(FakeRequest(GET, "/accounts/" + id)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json3 = Json.parse(contentAsString(result3))
       (__ \ "name")(json3) must contain(JsString("Free Software Company"))
       (__ \ "contacts")(json3) must contain(JsArray(Seq(JsString("5"), JsString("6"))))
@@ -196,7 +196,7 @@ class AccountSpec extends Specification {
       setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/accounts")
         .withJsonBody(defaultAccountJson)
-        .withCookies(authCookie(emailUser)))
+        .withSession(session(emailUser)))
       val json = Json.parse(contentAsString(result))
       val id = (__ \ "_id")(json).head.as[String]
 
@@ -205,7 +205,7 @@ class AccountSpec extends Specification {
       setCache(unauthorizedUser, "MANAGE_ACCOUNTS")
       val Some(result2) = route(FakeRequest(PUT, "/accounts/" + id)
         .withJsonBody(json)
-        .withCookies(authCookie(unauthorizedUser)))
+        .withSession(session(unauthorizedUser)))
     }
   }
 }
