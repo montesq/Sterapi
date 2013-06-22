@@ -20,7 +20,7 @@ object Auth extends Controller {
     Async {
       WS.url(authVerifyURL).post(
         Map(
-          "assertion" -> request.body.asFormUrlEncoded.getOrElse("assertion",""),
+          "assertion" -> request.body.asFormUrlEncoded.get.get("assertion").get,
           "audience" -> Seq(request.host)
         )
       ).map { result =>

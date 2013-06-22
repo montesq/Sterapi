@@ -20,7 +20,7 @@ class SecurityHandler extends DeadboltHandler {
   }
 
   override def getSubject[A](request: Request[A]): Option[Subject] = {
-    request.session.get(cookieAuthAttribute) match {
+    request.session.get(authAttribute) match {
       case Some(s) => Cache.getAs[User]("User." + s)
       case _       => None
     }
