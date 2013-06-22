@@ -11,10 +11,10 @@ import play.api.cache.Cache
 import play.api.libs.Crypto._
 import play.api.mvc.Session
 import play.api.Play.current
-import security.{UserRight, User}
 import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
+import models.{User, UserRight}
 
 class AccountSpec extends Specification {
 

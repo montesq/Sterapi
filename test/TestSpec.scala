@@ -1,15 +1,13 @@
 package test
 
 import org.specs2.mutable._
-import security.{UserRight, User}
 import play.api.test.Helpers._
-import security.User
 import scala.Some
-import security.UserRight
 import play.api.test.{WithApplication, FakeRequest}
 import play.api.mvc.Cookie
 import play.api.cache.Cache
 import play.api.Play.current
+import models.{User, UserRight}
 
 
 class TestSpec extends Specification {

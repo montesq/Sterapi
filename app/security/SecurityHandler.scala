@@ -5,11 +5,11 @@ import play.api.mvc._
 import be.objectify.deadbolt.scala.{DynamicResourceHandler, DeadboltHandler}
 import be.objectify.deadbolt.core.models.Subject
 import play.api.Play.current
-import play.api.libs.Crypto._
+import models.User
 
 class SecurityHandler extends DeadboltHandler {
 
-  val cookieAuthAttribute = "email"
+  val authAttribute = current.configuration.getString("auth.attribute").get
 
   def beforeAuthCheck[A](request: Request[A]) = None
 
@@ -20,7 +20,7 @@ class SecurityHandler extends DeadboltHandler {
   }
 
   override def getSubject[A](request: Request[A]): Option[Subject] = {
-    request.session.get(cookieAuthAttribute) match {
+    request.session.get(authAttribute) match {
       case Some(s) => Cache.getAs[User]("User." + s) //TODO: launch the query to get the user from database
       case _       => None
     }

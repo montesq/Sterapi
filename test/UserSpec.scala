@@ -3,8 +3,8 @@ package test
 import java.util
 import org.specs2.mutable._
 import play.libs.Scala
-import security.{ProfilesRights, UserProfile, UserRight, User}
 import scala.collection.JavaConverters._
+import models.{User, UserRight, UserProfile}
 
 
 class UserSpec extends Specification {

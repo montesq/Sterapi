@@ -1,4 +1,4 @@
-package security
+package models
 
 import scala.collection.immutable.Map
 import be.objectify.deadbolt.core.models.{Role, Subject}

@@ -6,33 +6,38 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.data.Forms._
 import play.api.data._
 import play.api.libs.json._
+import play.api.cache.Cache
+import play.api.Play.current
+import models.User
+
 
 object Auth extends Controller {
 
-  val authForm = Form(
-      "assertion" -> nonEmptyText
-  )
+  val authSessionAttribute = current.configuration.getString("auth.attribute").get
+  val authVerifyURL = current.configuration.getString("auth.verifyURL").get
 
   def login = Action { implicit request =>
-    authForm.bindFromRequest.fold(
-      errors => BadRequest,
-      assertion => Async {
-        WS.url("https://verifier.login.persona.org/verify").post(
-          Map(
-            "assertion" -> Seq(assertion),
-            "audience" -> Seq(request.host)
-          )
-        ).map { result =>
-          System.out.println(result.body)
-          val email = (__ \ "email")(result.json).head.as[String]
-          if (result.status == OK) Ok(Json.obj("email" -> email)).withCookies(Cookie("email", email))
-          else BadRequest
-        }
+    Async {
+      WS.url(authVerifyURL).post(
+        Map(
+          "assertion" -> request.body.asFormUrlEncoded.getOrElse("assertion",""),
+          "audience" -> Seq(request.host)
+        )
+      ).map { result =>
+        val email = (__ \ "email")(result.json).head.as[String]
+        if (result.status == OK)
+          Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
+        else BadRequest
       }
-    )
+    }
   }
-  def logout = Action {
-    Ok
+
+  def logout = Action { request =>
+    request.session.get(authSessionAttribute) match {
+      case Some(s) => Cache.remove("User." + s)
+      case _ => ()
+    }
+    Ok.withNewSession
   }
 }
 
