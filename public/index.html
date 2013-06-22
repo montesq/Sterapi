@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.6/angular.min.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="/javascripts/jquery.cookie.js"></script>
+  <script src="https://login.persona.org/include.js"></script>
+  <title>Application de suivi des fabrications Steriservices</title>
+</head>
+<body>
+<button id="signin">Sign in</button>
+<button id="signout">Sign out</button>
+<p id="connexion"></p>
+</body>
+<script>
+  $(document).ready(function() {
+
+    $("#signin").click(function() {
+      navigator.id.request({
+        siteName: "Steriservices",
+        siteLogo: "/images/logo.png"
+      });
+    });
+
+    $("#signout").click(function() {
+      navigator.id.logout();
+    });
+
+    navigator.id.watch({
+      loggedInUser: localStorage.getItem("email"),
+      onlogin: function(assertion) {
+        $.ajax({
+          type: 'POST',
+          url: '/auth/login',
+          data: {assertion: assertion},
+          success: function(res, status, xhr) {
+            localStorage.setItem("email", res.email);
+            window.location.reload();
+          },
+          error: function(xhr, status, err) {
+            navigator.id.logout();
+            alert("Login failure: " + err);
+          }
+        });
+      },
+      onlogout: function() {
+        $.ajax({
+          type: 'POST',
+          url: '/auth/logout', // This is a URL on your website.
+          success: function(res, status, xhr) {
+            localStorage.removeItem("email");
+            window.location.reload(); },
+          error: function(xhr, status, err) { alert("Logout failure: " + err); }
+        });
+      }
+    });
+
+    connectedUser = localStorage.getItem("email")
+    if (connectedUser) {
+      $("#connexion").html("Vous êtes connecté en tant que :" + connectedUser)
+    } else {
+      $("#connexion").html("Vous n'êtes pas connecté")
+    }
+
+  });
+</script>
+</html>

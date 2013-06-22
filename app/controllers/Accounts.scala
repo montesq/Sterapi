@@ -12,9 +12,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import security.SecurityHandler
 import be.objectify.deadbolt.core.PatternType
 import be.objectify.deadbolt.scala.DeadboltActions
+import reactivemongo.core.commands.{LastError, GetLastError}
+import play.modules.reactivemongo.MongoController
 
 
-object Accounts extends Controller with DeadboltActions {
+object Accounts extends Controller with MongoController with DeadboltActions {
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
 
@@ -30,8 +32,10 @@ object Accounts extends Controller with DeadboltActions {
           addTrailingDates)
         .map { json =>
         Async {
-          accountsColl.insert(json).map { lastError =>
-            Created(json.transform(outputAccount).get)
+          accountsColl.insert(json, GetLastError(true)).map { lastError =>
+            if (lastError.ok)
+              Created(json.transform(outputAccount).get)
+            else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
           }
         }
       }.recoverTotal { err =>

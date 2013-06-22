@@ -9,7 +9,7 @@ import play.api.libs.Crypto._
 
 class SecurityHandler extends DeadboltHandler {
 
-  val cookieAuthAttribute = "auth"
+  val cookieAuthAttribute = "email"
 
   def beforeAuthCheck[A](request: Request[A]) = None
 
@@ -21,7 +21,7 @@ class SecurityHandler extends DeadboltHandler {
 
   override def getSubject[A](request: Request[A]): Option[Subject] = {
     request.session.get(cookieAuthAttribute) match {
-      case Some(s) => Cache.getAs[User]("User." + s)
+      case Some(s) => Cache.getAs[User]("User." + s) //TODO: launch the query to get the user from database
       case _       => None
     }
   }

@@ -3,8 +3,8 @@
 # ~~~~
 
 GET    /                              controllers.test.test
-#POST   /login                         controllers.Auth.login
-#POST   /logout                        controllers.Auth.logout
+POST   /auth/login                    controllers.Auth.login
+POST   /auth/logout                   controllers.Auth.logout
 
 POST   /accounts                      controllers.Accounts.createAccount
 GET    /accounts                      controllers.Accounts.listAccounts
@@ -14,6 +14,7 @@ PUT    /accounts/:id                  controllers.Accounts.updateAccount(id: Str
 #PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
 #DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
 
+->     /fabrication                   controllers.Fabrication
 POST   /sterilizations                      controllers.Sterilizations.createSterilization
 GET    /sterilizations                      controllers.Sterilizations.listSterilizations
 GET    /sterilizations/:id                  controllers.Sterilizations.getSterilization(id: String)
@@ -21,4 +22,4 @@ PUT    /sterilizations/:id                  controllers.Sterilizations.updateSte
 GET    /sterilizations/account/:accountId/  controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
 
 # Map static resources from the /public folder to the /assets URL path
-GET    /assets/*file               controllers.Assets.at(path="/public", file)
+GET    /*file               controllers.Assets.at(path="/public", file)

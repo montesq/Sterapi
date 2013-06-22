@@ -1,4 +1,4 @@
-package helper
+package test.helper
 
 import reactivemongo.api._
 import scala.concurrent.ExecutionContext.Implicits.global

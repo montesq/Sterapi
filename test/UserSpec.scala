@@ -1,3 +1,5 @@
+package test
+
 import java.util
 import org.specs2.mutable._
 import play.libs.Scala
