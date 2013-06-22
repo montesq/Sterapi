@@ -1,8 +1,16 @@
 package test
 
 import org.specs2.mutable._
+<<<<<<< HEAD
 import play.api.test.Helpers._
 import scala.Some
+=======
+import security.{UserRight, User}
+import play.api.test.Helpers._
+import security.User
+import scala.Some
+import security.UserRight
+>>>>>>> origin/master
 import play.api.test.{WithApplication, FakeRequest}
 import play.api.mvc.Cookie
 import play.api.cache.Cache

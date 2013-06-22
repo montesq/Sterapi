@@ -40,4 +40,3 @@ object Auth extends Controller {
     Ok.withNewSession
   }
 }
-
