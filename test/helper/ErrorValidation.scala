@@ -1,4 +1,4 @@
-package helper
+package test.helper
 
 import play.api.libs.json._
 

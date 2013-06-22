@@ -5,7 +5,8 @@ import be.objectify.deadbolt.core.models.{Role, Subject}
 import play.libs.Scala
 
 case class User(userName: String,
-                _rolesList: List[Role] = Nil) extends Subject {
+                _rolesList: List[Role] = Nil,
+                clients: List[String] = Nil) extends Subject {
   val rolesList = convertRolesToRights(_rolesList)
 
   def getRoles: java.util.List[Role] = Scala.asJava(rolesList)
@@ -14,6 +15,8 @@ case class User(userName: String,
   def getPermissions = Scala.asJava(Nil)
 
   def getIdentifier: String = userName
+
+  def getClients: List[String] = clients
 
   def convertRolesToRights(roles: List[Role]): List[UserRight] = {
     roles match {

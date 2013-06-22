@@ -16,7 +16,7 @@ import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 
-class AccountSpec extends Specification {
+class FabricationSpec extends Specification {
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
   accountsColl.drop()
@@ -28,7 +28,7 @@ class AccountSpec extends Specification {
 
   val emailUser = "test@test.fr"
   val manageAccountsRight = "MANAGE_ACCOUNTS"
-  def session(email: String) = ("email", email)
+  def session(email: String) = ("auth", email)
   def setCache(email: String, right: String) =
     Cache.set("User." + email, User(email, List(UserRight(right))))
 
