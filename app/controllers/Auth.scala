@@ -16,17 +16,18 @@ object Auth extends Controller {
   val authSessionAttribute = current.configuration.getString("auth.attribute").get
   val authVerifyURL = current.configuration.getString("auth.verifyURL").get
 
-  def login = Action { implicit request =>
+  def login = Action(parse.json) { (request) =>
     Async {
       WS.url(authVerifyURL).post(
         Map(
-          "assertion" -> request.body.asFormUrlEncoded.get.get("assertion").get,
+          "assertion" -> Seq((request.body \ "assertion").as[String]),
           "audience" -> Seq(request.host)
         )
       ).map { result =>
-        val email = (__ \ "email")(result.json).head.as[String]
-        if (result.status == OK)
+        if (result.status == OK) {
+          val email = (result.json \ "email").as[String]
           Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
+        }
         else BadRequest
       }
     }
