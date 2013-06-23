@@ -3,13 +3,10 @@ package controllers
 import play.api.mvc._
 import play.api.libs.ws.WS
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.data.Forms._
-import play.api.data._
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.cache.Cache
 import play.api.Play.current
-import models.User
 
 
 object Auth extends Controller {
@@ -27,10 +24,13 @@ object Auth extends Controller {
           )
         ).map { result =>
           if (result.status == OK) {
-            val email = (result.json \ "email").as[String]
-            Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
+            if ((result.json \ "status").as[String] == "okay") {
+              val email = (result.json \ "email").as[String]
+              Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
+            }
+            else Forbidden
           }
-          else BadRequest
+          else InternalServerError
         }
       }
     }.recoverTotal { err =>
