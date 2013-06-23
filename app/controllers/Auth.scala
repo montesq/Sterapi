@@ -26,6 +26,7 @@ object Auth extends Controller {
           if (result.status == OK) {
             if ((result.json \ "status").as[String] == "okay") {
               val email = (result.json \ "email").as[String]
+              // TODO check the email match an application user
               Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
             }
             else Forbidden

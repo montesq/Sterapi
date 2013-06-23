@@ -1,6 +1,4 @@
-angular.module('auth.service', []);
-
-angular.module('auth', ['auth.service']);
+angular.module('auth', []);
 
 function AuthCtrl($scope, $http) {
   $scope.currentUser = localStorage.getItem("email");
