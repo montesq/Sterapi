@@ -23,21 +23,25 @@ function AuthCtrl($scope, $http) {
     ).success(function(data, status, headers, config) {
         localStorage.setItem("email", data.email);
         window.location.reload();
-    }).error(function(data, status, headers, config) {
+      }
+    ).error(function(data, status, headers, config) {
         navigator.id.logout();
         alert("Login failure: " + data.toSource());
-    })
+      }
+    )
   };
 
   $scope.serverLogout = function() {
-    $.ajax({
-      type: 'POST',
-      url: '/auth/logout', // This is a URL on your website.
-      success: function(res, status, xhr) {
+    $http.post(
+        "/auth/logout"
+    ).success(function() {
         localStorage.removeItem("email");
-        window.location.reload(); },
-      error: function(xhr, status, err) { alert("Logout failure: " + err); }
-    });
+        window.location.reload();
+      }
+    ).error(function(data, status, headers, config) {
+        alert("Logout failure: " + data.toSource());
+      }
+    )
   }
 
   navigator.id.watch({
