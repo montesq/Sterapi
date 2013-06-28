@@ -1,6 +1,6 @@
 angular.module('auth', []);
 
-function AuthCtrl($scope, $http) {
+function AuthCtrl($scope, $rootScope, $http) {
   $scope.currentUser = localStorage.getItem("email");
 
   $scope.authRequest = function() {
@@ -16,7 +16,7 @@ function AuthCtrl($scope, $http) {
 
   $scope.serverVerifyAssertion = function(assertion) {
     $http.post(
-      "/auth/login",
+      $rootScope.sterapiServer + "/auth/login",
       {assertion: assertion}
     ).success(function(data, status, headers, config) {
         localStorage.setItem("email", data.email);
@@ -31,7 +31,7 @@ function AuthCtrl($scope, $http) {
 
   $scope.serverLogout = function() {
     $http.post(
-        "/auth/logout"
+        $rootScope.sterapiServer + "/auth/logout"
     ).success(function() {
         localStorage.removeItem("email");
         window.location.reload();
