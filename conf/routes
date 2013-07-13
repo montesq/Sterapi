@@ -3,23 +3,26 @@
 # ~~~~
 
 GET    /                              controllers.test.test
-POST   /auth/login                    controllers.Auth.login
-POST   /auth/logout                   controllers.Auth.logout
 
-POST   /accounts                      controllers.Accounts.createAccount
-GET    /accounts                      controllers.Accounts.listAccounts
-GET    /accounts/:id                  controllers.Accounts.getAccount(id: String)
-PUT    /accounts/:id                  controllers.Accounts.updateAccount(id: String)
+OPTIONS /api/*url                     controllers.Cors.option(url: String)
+
+POST   /api/auth/login                    controllers.Auth.login
+POST   /api/auth/logout                   controllers.Auth.logout
+
+POST   /api/accounts                      controllers.Accounts.createAccount
+GET    /api/accounts                      controllers.Accounts.listAccounts
+GET    /api/accounts/:id                  controllers.Accounts.getAccount(id: String)
+PUT    /api/accounts/:id                  controllers.Accounts.updateAccount(id: String)
 #GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
 #PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
 #DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
 
-->     /fabrication                   controllers.Fabrication
-POST   /sterilizations                      controllers.Sterilizations.createSterilization
-GET    /sterilizations                      controllers.Sterilizations.listSterilizations
-GET    /sterilizations/:id                  controllers.Sterilizations.getSterilization(id: String)
-PUT    /sterilizations/:id                  controllers.Sterilizations.updateSterilization(id: String)
-GET    /sterilizations/account/:accountId/  controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
+->     /api/fabrication                   controllers.Fabrication
+POST   /api/sterilizations                      controllers.Sterilizations.createSterilization
+GET    /api/sterilizations                      controllers.Sterilizations.listSterilizations
+GET    /api/sterilizations/:id                  controllers.Sterilizations.getSterilization(id: String)
+PUT    /api/sterilizations/:id                  controllers.Sterilizations.updateSterilization(id: String)
+GET    /api/sterilizations/account/:accountId/  controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET    /*file               controllers.Assets.at(path="/public", file)

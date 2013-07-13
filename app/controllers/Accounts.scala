@@ -7,7 +7,7 @@ import reactivemongo.bson.BSONObjectID
 import play.modules.reactivemongo.json.collection.JSONCollection
 import models.Accounts._
 import models.Common._
-import utils.DBConnection
+import utils.{CORSAction, DBConnection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import security.SecurityHandler
 import be.objectify.deadbolt.core.PatternType
@@ -45,7 +45,7 @@ object Accounts extends Controller with MongoController with DeadboltActions {
   }
 
   def listAccounts = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    Action {
+    CORSAction {
       Async {
         val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
           .sort(Json.obj("_id" -> 1))
@@ -62,7 +62,7 @@ object Accounts extends Controller with MongoController with DeadboltActions {
   }
 
   def getAccount(id: String) = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    Action {
+    CORSAction {
       if (BSONObjectID.parse(id).isSuccess) {
         Async {
           accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {

@@ -1,1 +1,0 @@
-angular.module('myApp', ['auth', 'ui.bootstrap']);
