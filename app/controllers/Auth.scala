@@ -3,45 +3,39 @@ package controllers
 import play.api.mvc._
 import play.api.libs.ws.WS
 import scala.concurrent.ExecutionContext.Implicits.global
+import play.api.data._
 import play.api.libs.json._
-import play.api.libs.json.Reads._
 import play.api.cache.Cache
 import play.api.Play.current
 import utils.CORSAction
-
 
 object Auth extends Controller {
 
   val authSessionAttribute = current.configuration.getString("auth.attribute").get
   val authVerifyURL = current.configuration.getString("auth.verifyURL").get
 
-  def login = Action { request =>
+  def login = CORSAction { request =>
     request.body.asJson.map { json =>
-      json.transform((__ \ "assertion").json.pickBranch).map { json =>
+      json.transform((__ \ "assertion").json.pickBranch).map { assertion =>
         Async {
-          WS.url(authVerifyURL).post(
-            Map(
-              "assertion" -> Seq((json \ "assertion").as[String]),
-              "audience" -> Seq(request.headers.get("Origin").getOrElse(""))
-            )
-          ).map { result =>
+          val postBody = Map(
+            "assertion" -> Seq((assertion \ "assertion").as[String]),
+            "audience" -> Seq(request.headers.get("Origin").getOrElse(""))
+          )
+          System.out.println(postBody)
+          WS.url(authVerifyURL).post(postBody).map { result =>
             if (result.status == OK) {
-              if ((result.json \ "status").as[String] == "okay") {
+              val status = (result.json \ "status").as[String]
+              if (status == "okay") {
                 val email = (result.json \ "email").as[String]
-                // TODO check the email match an application user
-                Ok(Json.obj(authSessionAttribute -> email)).
-                  withSession((authSessionAttribute, email)).
-                  withHeaders("Access-Control-Allow-Origin" -> request.headers.get("Origin").getOrElse("")
-                )
+                Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
               }
-              else Forbidden
+              else BadRequest("Invalid assertion")
             }
-            else InternalServerError
+            else InternalServerError("Impossible to check the assertion")
           }
         }
-      }.recoverTotal { err =>
-        BadRequest(JsError.toFlatJson(err))
-      }
+      }.getOrElse(BadRequest("Expecting JSON data"))
     }.getOrElse(BadRequest("Expecting JSON data"))
   }
 

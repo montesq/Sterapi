@@ -5,8 +5,8 @@ import play.api.libs.json._
 import reactivemongo.api.indexes._
 import reactivemongo.bson.BSONObjectID
 import play.modules.reactivemongo.json.collection.JSONCollection
-import models.Accounts._
-import models.Common._
+import jsonFormaters.Accounts._
+import jsonFormaters.Common._
 import utils.{CORSAction, DBConnection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import security.SecurityHandler
@@ -23,28 +23,30 @@ object Accounts extends Controller with MongoController with DeadboltActions {
   accountsColl.indexesManager.ensure(
     Index(Seq("status" -> IndexType.Ascending), None))
 
-  def createAccount = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    Action(parse.json) { request =>
-      request.body.transform(
-        validateAccount andThen
-          addId andThen
-          addStatus(activeStatus) andThen
-          addTrailingDates)
-        .map { json =>
-        Async {
-          accountsColl.insert(json, GetLastError(true)).map { lastError =>
-            if (lastError.ok)
-              Created(json.transform(outputAccount).get)
-            else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+  def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    CORSAction{ request =>
+      request.body.asJson.map { json =>
+        json.transform(
+          validateAccount andThen
+            addId andThen
+            addStatus(activeStatus) andThen
+            addTrailingDates)
+          .map { json2 =>
+          Async {
+            accountsColl.insert(json2, GetLastError(true)).map { lastError =>
+              if (lastError.ok)
+                Created(json2.transform(outputAccount).get)
+              else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+            }
           }
+        }.recoverTotal { err =>
+          BadRequest(JsError.toFlatJson(err))
         }
-      }.recoverTotal { err =>
-        BadRequest(JsError.toFlatJson(err))
-      }
+      }.getOrElse(BadRequest)
     }
-  }
+//  }
 
-  def listAccounts = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+  def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {
       Async {
         val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
@@ -59,9 +61,9 @@ object Accounts extends Controller with MongoController with DeadboltActions {
         }
       }
     }
-  }
+//  }
 
-  def getAccount(id: String) = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+  def getAccount(id: String) = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {
       if (BSONObjectID.parse(id).isSuccess) {
         Async {
@@ -74,27 +76,29 @@ object Accounts extends Controller with MongoController with DeadboltActions {
         }
       } else NotFound
     }
-  }
+//  }
 
-  def updateAccount(id: String) = Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    Action(parse.json) { request =>
-      request.body.transform(validateAccount).flatMap { jsobj =>
-        jsobj.transform(toUpdate).map { updateSelector =>
-          Async {
-            accountsColl.update(
-              Json.obj("_id" -> Json.obj("$oid" -> id)),
-              updateSelector
-            ).map { lastError =>
-              if (lastError.ok)
-                Ok(updateSelector)
-              else
-                InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+  def updateAccount(id: String) = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+    CORSAction { request =>
+      request.body.asJson.map { json =>
+        json.transform(validateAccount).flatMap { jsobj =>
+          jsobj.transform(toUpdate).map { updateSelector =>
+            Async {
+              accountsColl.update(
+                Json.obj("_id" -> Json.obj("$oid" -> id)),
+                updateSelector
+              ).map { lastError =>
+                if (lastError.ok)
+                  Ok(updateSelector)
+                else
+                  InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+              }
             }
           }
+        }.recoverTotal { e =>
+          BadRequest(JsError.toFlatJson(e))
         }
-      }.recoverTotal { e =>
-        BadRequest(JsError.toFlatJson(e))
-      }
+      }.getOrElse(BadRequest)
     }
-  }
+//  }
 }

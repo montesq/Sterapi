@@ -2,27 +2,31 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-GET    /                              controllers.test.test
+GET            /                                              controllers.test.test
 
-OPTIONS /api/*url                     controllers.Cors.option(url: String)
+OPTIONS        /api/*url                                      controllers.Cors.option(url: String)
 
-POST   /api/auth/login                    controllers.Auth.login
-POST   /api/auth/logout                   controllers.Auth.logout
+POST           /api/auth/login                                controllers.Auth.login
+POST           /api/auth/logout                               controllers.Auth.logout
 
-POST   /api/accounts                      controllers.Accounts.createAccount
-GET    /api/accounts                      controllers.Accounts.listAccounts
-GET    /api/accounts/:id                  controllers.Accounts.getAccount(id: String)
-PUT    /api/accounts/:id                  controllers.Accounts.updateAccount(id: String)
+POST           /api/accounts                                  controllers.Accounts.createAccount
+GET            /api/accounts                                  controllers.Accounts.listAccounts
+GET            /api/accounts/:id                              controllers.Accounts.getAccount(id: String)
+PUT            /api/accounts/:id                              controllers.Accounts.updateAccount(id: String)
 #GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
 #PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
 #DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
 
-->     /api/fabrication                   controllers.Fabrication
-POST   /api/sterilizations                      controllers.Sterilizations.createSterilization
-GET    /api/sterilizations                      controllers.Sterilizations.listSterilizations
-GET    /api/sterilizations/:id                  controllers.Sterilizations.getSterilization(id: String)
-PUT    /api/sterilizations/:id                  controllers.Sterilizations.updateSterilization(id: String)
-GET    /api/sterilizations/account/:accountId/  controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
+POST           /api/fabrication                               controllers.Fabrication.create
+GET            /api/fabrication                               controllers.Fabrication.list
+GET            /api/fabrication/:id                           controllers.Fabrication.getOne(id: String)
+PUT            /api/fabrication/:id                           controllers.Fabrication.updateOne(id: String)
+
+POST           /api/sterilizations                            controllers.Sterilizations.createSterilization
+GET            /api/sterilizations                            controllers.Sterilizations.listSterilizations
+GET            /api/sterilizations/:id                        controllers.Sterilizations.getSterilization(id: String)
+PUT            /api/sterilizations/:id                        controllers.Sterilizations.updateSterilization(id: String)
+GET            /api/sterilizations/account/:accountId/        controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
 
 # Map static resources from the /public folder to the /assets URL path
-GET    /*file               controllers.Assets.at(path="/public", file)
+GET            /*file                                         controllers.Assets.at(path="/public", file)
