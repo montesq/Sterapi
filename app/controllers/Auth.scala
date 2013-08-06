@@ -22,7 +22,6 @@ object Auth extends Controller {
             "assertion" -> Seq((assertion \ "assertion").as[String]),
             "audience" -> Seq(request.headers.get("Origin").getOrElse(""))
           )
-          System.out.println(postBody)
           WS.url(authVerifyURL).post(postBody).map { result =>
             if (result.status == OK) {
               val status = (result.json \ "status").as[String]

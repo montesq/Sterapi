@@ -190,7 +190,7 @@ class AccountSpec extends Specification {
       val json3 = Json.parse(contentAsString(result3))
       (__ \ "name")(json3) must contain(JsString("Free Software Company"))
       (__ \ "contacts")(json3) must contain(JsArray(Seq(JsString("5"), JsString("6"))))
-      (__ \ "modified_on")(json3) must not equalTo (((__ \ "created_on")(json3)))
+      (__ \ "modifiedOn")(json3) must not equalTo (((__ \ "createdOsn")(json3)))
     }
 
 //    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {

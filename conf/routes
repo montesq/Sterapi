@@ -13,14 +13,11 @@ POST           /api/accounts                                  controllers.Accoun
 GET            /api/accounts                                  controllers.Accounts.listAccounts
 GET            /api/accounts/:id                              controllers.Accounts.getAccount(id: String)
 PUT            /api/accounts/:id                              controllers.Accounts.updateAccount(id: String)
-#GET    /accounts/:id/contacts         controllers.Accounts.getAccountContacts(id: String)
-#PUT    /accounts/:idAccount/contacts/:idContact controllers.Accounts.addAccountContact(idAccount: String, idContact: String)
-#DELETE /accounts/:idAccount/contacts/:idContact controllers.Accounts.removeAccountContact(idAccount: String, idContact: String)
 
-POST           /api/fabrication                               controllers.Fabrication.create
-GET            /api/fabrication                               controllers.Fabrication.list
-GET            /api/fabrication/:id                           controllers.Fabrication.getOne(id: String)
-PUT            /api/fabrication/:id                           controllers.Fabrication.updateOne(id: String)
+POST           /api/fabrications                               controllers.Fabrications.create
+GET            /api/fabrications                               controllers.Fabrications.list
+GET            /api/fabrications/:id                           controllers.Fabrications.getOne(id: String)
+PUT            /api/fabrications/:id                           controllers.Fabrications.updateOne(id: String)
 
 POST           /api/sterilizations                            controllers.Sterilizations.createSterilization
 GET            /api/sterilizations                            controllers.Sterilizations.listSterilizations

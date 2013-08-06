@@ -26,24 +26,21 @@ object Common {
   def addTrailingDates = {
     val ts = JsNumber(System.currentTimeMillis())
     __.json.update((
-      (__ \ "created_on" \ "$date").json.put(ts) and
-        (__ \ "modified_on" \ "$date").json.put(ts)
+      (__ \ "createdOn" \ "$date").json.put(ts) and
+        (__ \ "modifiedOn" \ "$date").json.put(ts)
       ).reduce
     )
   }
 
   def idsOrEmptyArray(path: JsPath) =
-    (path.json.pick[JsArray] orElse Reads.pure(Json.arr())) andThen
-      validateIdsList
+    (path.json.pick[JsArray] orElse Reads.pure(Json.arr()))
 
-  def validateIdsList =
-    Reads.verifyingIf((arr: JsArray) => !arr.value.isEmpty)(Reads.list[JsString])
 
   def toUpdate = (__ \ "$set").json.copyFrom(__.json.pick[JsValue]) andThen updateModifiedDate
 
   def updateModifiedDate = {
     __.json.update(
-      (__ \ "$set" \ "modified_on" \ "$date").json.put(JsNumber(System.currentTimeMillis()))
+      (__ \ "$set" \ "modifiedOn" \ "$date").json.put(JsNumber(System.currentTimeMillis()))
     )
   }
 

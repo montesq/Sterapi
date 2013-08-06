@@ -17,6 +17,6 @@ object Accounts {
 
   val outputAccount =
     removeOid andThen
-      convertDate((__ \ "created_on")) andThen
-      convertDate((__ \ "modified_on"))
+      convertDate((__ \ "createdOn")) andThen
+      convertDate((__ \ "modifiedOn"))
 }
