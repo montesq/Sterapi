@@ -36,7 +36,8 @@ object Common {
     (path.json.pick[JsArray] orElse Reads.pure(Json.arr()))
 
 
-  def toUpdate = (__ \ "$set").json.copyFrom(__.json.pick[JsValue]) andThen updateModifiedDate
+  def toUpdate = (__ \ "_id").json.prune andThen
+    (__ \ "$set").json.copyFrom(__.json.pick[JsValue]) andThen updateModifiedDate
 
   def updateModifiedDate = {
     __.json.update(
