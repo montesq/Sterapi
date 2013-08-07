@@ -14,13 +14,13 @@ object Auth extends Controller {
   val authSessionAttribute = current.configuration.getString("auth.attribute").get
   val authVerifyURL = current.configuration.getString("auth.verifyURL").get
 
-  def login = CORSAction { request =>
-    request.body.asJson.map { json =>
-      json.transform((__ \ "assertion").json.pickBranch).map { assertion =>
+  def login = CORSAction {
+    Action (parse.json) {  json =>
+      json.body.transform((__ \ "assertion").json.pickBranch).map { assertion =>
         Async {
           val postBody = Map(
             "assertion" -> Seq((assertion \ "assertion").as[String]),
-            "audience" -> Seq(request.headers.get("Origin").getOrElse(""))
+            "audience" -> Seq(json.headers.get("Origin").getOrElse(""))
           )
           WS.url(authVerifyURL).post(postBody).map { result =>
             if (result.status == OK) {
@@ -35,14 +35,16 @@ object Auth extends Controller {
           }
         }
       }.getOrElse(BadRequest("Expecting JSON data"))
-    }.getOrElse(BadRequest("Expecting JSON data"))
+    }
   }
 
-  def logout = CORSAction { request =>
-    request.session.get(authSessionAttribute) match {
-      case Some(s) => Cache.remove("User." + s)
-      case _ => ()
+  def logout = CORSAction {
+    Action { request =>
+      request.session.get(authSessionAttribute) match {
+        case Some(s) => Cache.remove("User." + s)
+        case _ => ()
+      }
+      Ok.withNewSession
     }
-    Ok.withNewSession
   }
 }

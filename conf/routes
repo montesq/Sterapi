@@ -14,16 +14,14 @@ GET            /api/accounts                                  controllers.Accoun
 GET            /api/accounts/:id                              controllers.Accounts.getAccount(id: String)
 PUT            /api/accounts/:id                              controllers.Accounts.updateAccount(id: String)
 
-POST           /api/fabrications                               controllers.Fabrications.create
-GET            /api/fabrications                               controllers.Fabrications.list
-GET            /api/fabrications/:id                           controllers.Fabrications.getOne(id: String)
-PUT            /api/fabrications/:id                           controllers.Fabrications.updateOne(id: String)
+POST           /api/fabrications                              controllers.Fabrications.create
+GET            /api/fabrications                              controllers.Fabrications.list
+GET            /api/fabrications/:id                          controllers.Fabrications.getOne(id: String)
+PUT            /api/fabrications/:id                          controllers.Fabrications.updateOne(id: String)
+POST           /api/fabrications/:idFab/attachments           controllers.Fabrications.saveAttachment(idFab: String)
+GET            /api/fabrications/:idFab/attachments/:idAtt    controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
 
-POST           /api/sterilizations                            controllers.Sterilizations.createSterilization
-GET            /api/sterilizations                            controllers.Sterilizations.listSterilizations
-GET            /api/sterilizations/:id                        controllers.Sterilizations.getSterilization(id: String)
-PUT            /api/sterilizations/:id                        controllers.Sterilizations.updateSterilization(id: String)
-GET            /api/sterilizations/account/:accountId/        controllers.Sterilizations.listSterilizationsByAccount(accountId: String)
+GET            /api/test                                      controllers.test.test
 
 # Map static resources from the /public folder to the /assets URL path
 GET            /*file                                         controllers.Assets.at(path="/public", file)

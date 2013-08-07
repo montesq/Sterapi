@@ -3,9 +3,9 @@ package jsonFormaters
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
-import jsonFormaters.Common._
+import jsonFormaters.CommonFormaters._
 
-object Accounts {
+object AccountsFormaters {
   val activeStatus = "ACTIVE"
   val inactiveStatus = "INACTIVE"
 

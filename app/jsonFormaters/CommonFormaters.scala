@@ -8,7 +8,7 @@ import org.joda.time._
 import org.joda.time.format.ISODateTimeFormat
 
 
-object Common {
+object CommonFormaters {
   val emptyObj = __.json.put(Json.obj())
 
   val addId = __.json.update(

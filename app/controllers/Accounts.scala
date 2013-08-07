@@ -5,8 +5,8 @@ import play.api.libs.json._
 import reactivemongo.api.indexes._
 import reactivemongo.bson.BSONObjectID
 import play.modules.reactivemongo.json.collection.JSONCollection
-import jsonFormaters.Accounts._
-import jsonFormaters.Common._
+import jsonFormaters.AccountsFormaters._
+import jsonFormaters.CommonFormaters._
 import utils.{CORSAction, DBConnection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import security.SecurityHandler
@@ -24,9 +24,9 @@ object Accounts extends Controller with MongoController with DeadboltActions {
     Index(Seq("status" -> IndexType.Ascending), None))
 
   def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    CORSAction{ request =>
-      request.body.asJson.map { json =>
-        json.transform(
+    CORSAction{
+      Action (parse.json) { json =>
+        json.body.validate(
           validateAccount andThen
             addId andThen
             addStatus(activeStatus) andThen
@@ -42,22 +42,24 @@ object Accounts extends Controller with MongoController with DeadboltActions {
         }.recoverTotal { err =>
           BadRequest(JsError.toFlatJson(err))
         }
-      }.getOrElse(BadRequest)
+      }
     }
 //  }
 
   def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {
-      Async {
-        val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
-          .sort(Json.obj("_id" -> 1))
-          .cursor[JsObject]
-          .toList
-        accountsFutureList.map { list =>
-          val transformedList = for (account <- list) yield account.transform(outputAccount).get
-          Ok(JsArray(transformedList))
-        }.recover { case e =>
-          InternalServerError(JsString("exception %s".format(e.getMessage)))
+      Action {
+        Async {
+          val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
+            .sort(Json.obj("_id" -> 1))
+            .cursor[JsObject]
+            .toList
+          accountsFutureList.map { list =>
+            val transformedList = for (account <- list) yield account.transform(outputAccount).get
+            Ok(JsArray(transformedList))
+          }.recover { case e =>
+            InternalServerError(JsString("exception %s".format(e.getMessage)))
+          }
         }
       }
     }
@@ -65,23 +67,25 @@ object Accounts extends Controller with MongoController with DeadboltActions {
 
   def getAccount(id: String) = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {
-      if (BSONObjectID.parse(id).isSuccess) {
-        Async {
-          accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
-            case Some(account) => Ok(account.transform(outputAccount).get)
-            case None => NotFound
-          }.recover { case e =>
-            InternalServerError(JsString("exception %s".format(e.getMessage)))
+      Action {
+        if (BSONObjectID.parse(id).isSuccess) {
+          Async {
+            accountsColl.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
+              case Some(account) => Ok(account.transform(outputAccount).get)
+              case None => NotFound
+            }.recover { case e =>
+              InternalServerError(JsString("exception %s".format(e.getMessage)))
+            }
           }
-        }
-      } else NotFound
+        } else NotFound
+      }
     }
 //  }
 
   def updateAccount(id: String) = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    CORSAction { request =>
-      request.body.asJson.map { json =>
-        json.transform(validateAccount).flatMap { jsobj =>
+    CORSAction {
+      Action (parse.json) {  json =>
+        json.body.transform(validateAccount).flatMap { jsobj =>
           jsobj.transform(toUpdate).map { updateSelector =>
             Async {
               accountsColl.update(
@@ -98,7 +102,7 @@ object Accounts extends Controller with MongoController with DeadboltActions {
         }.recoverTotal { e =>
           BadRequest(JsError.toFlatJson(e))
         }
-      }.getOrElse(BadRequest)
+      }
     }
 //  }
 }
