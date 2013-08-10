@@ -1,22 +1,16 @@
 package controllers
 
 import play.api.libs.json._
-import play.autosource.reactivemongo.ReactiveMongoAutoSourceController
-import play.modules.reactivemongo.json.collection.JSONCollection
-import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.mvc.Controller
 import play.modules.reactivemongo.MongoController
 import be.objectify.deadbolt.scala.DeadboltActions
 import utils.{CORSAction, DBConnection}
 import jsonFormaters.AccountsFormaters._
-import play.modules.reactivemongo.json.collection.JSONCollection
 import jsonFormaters.CommonFormaters._
-import play.modules.reactivemongo.json.collection.JSONCollection
-import reactivemongo.core.commands.{Update, FindAndModify, GetLastError}
+import reactivemongo.core.commands.GetLastError
 import play.modules.reactivemongo.json.collection.JSONCollection
 import play.api.libs.json.JsObject
 import play.api.libs.json.JsString
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.bson.BSONObjectID
 import play.api.mvc._
 import java.io.File
 import jsonFormaters.FabricationFormaters._
@@ -111,16 +105,14 @@ object Fabrications extends Controller with MongoController with DeadboltActions
   def getOne(id: String) = //Restrict(Array("MANAGE_FABRICATIONS"), new SecurityHandler) {
     CORSAction {
       Action {
-        if (BSONObjectID.parse(id).isSuccess) {
-          Async {
-            fabCollection.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
-              case Some(fabrication) => Ok(fabrication.transform(removeOid).get)
-              case None => NotFound
-            }.recover { case e =>
-              InternalServerError(JsString("exception %s".format(e.getMessage)))
-            }
+        Async {
+          fabCollection.find(Json.obj("_id" -> id)).one[JsObject].map {
+            case Some(fabrication) => Ok(fabrication)
+            case None => NotFound
+          }.recover { case e =>
+            InternalServerError(JsString("exception %s".format(e.getMessage)))
           }
-        } else NotFound
+        }
       }
     }
 //  }
@@ -137,7 +129,7 @@ object Fabrications extends Controller with MongoController with DeadboltActions
                 val updateObj = (jsObj ++ Json.obj("client" -> clientObj.transform(outputAccount).get)).
                   transform(toUpdate).get
                 fabCollection.update(
-                  Json.obj("_id" -> Json.obj("$oid" -> id)),
+                  Json.obj("_id" -> id),
                   updateObj
                 ).map { lastError =>
                   if (lastError.ok)
