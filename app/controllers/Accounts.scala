@@ -26,14 +26,14 @@ object Accounts extends Controller with MongoController with DeadboltActions {
   def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction{
       Action (parse.json) { json =>
-        json.body.validate(
+        json.body.transform(
           validateAccount andThen
             addId andThen
             addStatus(activeStatus) andThen
             addTrailingDates)
           .map { json2 =>
           Async {
-            accountsColl.insert(json2, GetLastError(true)).map { lastError =>
+            accountsColl.insert(json2, GetLastError(awaitJournalCommit = true)).map { lastError =>
               if (lastError.ok)
                 Created(json2.transform(outputAccount).get)
               else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
