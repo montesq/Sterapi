@@ -20,19 +20,35 @@ import play.api.libs.json.JsString
 import reactivemongo.bson.BSONObjectID
 import play.api.mvc._
 import java.io.File
+import jsonFormaters.FabricationFormaters._
+import scala.concurrent.Future
 
 object Fabrications extends Controller with MongoController with DeadboltActions{
-  val coll = DBConnection.db.collection[JSONCollection]("fabrications")
+  val fabCollection = DBConnection.db.collection[JSONCollection]("fabrications")
+  val accountCollection = DBConnection.db.collection[JSONCollection]("accounts")
 
   def create = //Restrict(Array("MANAGE_FABRICATIONS"), new SecurityHandler) {
     CORSAction {
-      Action(parse.json) { json =>
-        Async {
-          coll.insert(json.body, GetLastError(true)).map { lastError =>
-            if (lastError.ok)
-              Created
-            else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+      Action(parse.json) { request =>
+        request.body.transform(validateFabrication).map { jsObj =>
+          Async {
+            accountCollection.find(
+              jsObj.transform((__ \ "_id" \ "$oid").json.copyFrom(( __ \ "client" \ "_id").json.pick)).get
+            ).one[JsObject].map {
+              case Some(clientObj) => Async {
+                  fabCollection.insert(
+                    jsObj ++ Json.obj("client" -> clientObj.transform(outputAccount).get),
+                    GetLastError(true)).map { lastError =>
+                    if (lastError.ok)
+                      Created
+                    else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+                  }
+              }
+              case None => BadRequest(Json.obj("err" -> "Incoherent Client ID"))
+            }
           }
+        }.recoverTotal { err =>
+          BadRequest(JsError.toFlatJson(err))
         }
       }
     }
@@ -42,7 +58,7 @@ object Fabrications extends Controller with MongoController with DeadboltActions
     CORSAction {
       Action {
         Async {
-          val fabFutureList = coll.find(Json.obj())
+          val fabFutureList = fabCollection.find(Json.obj())
             .sort(Json.obj("_id" -> 1))
             .cursor[JsObject]
             .toList
@@ -63,7 +79,7 @@ object Fabrications extends Controller with MongoController with DeadboltActions
       Action {
         if (BSONObjectID.parse(id).isSuccess) {
           Async {
-            coll.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
+            fabCollection.find(Json.obj("_id" -> Json.obj("$oid" -> id))).one[JsObject].map {
               case Some(fabrication) => Ok(fabrication.transform(removeOid).get)
               case None => NotFound
             }.recover { case e =>
@@ -77,24 +93,55 @@ object Fabrications extends Controller with MongoController with DeadboltActions
 
   def updateOne(id: String) = //Restrict(Array("MANAGE_FABRICATIONS"), new SecurityHandler) {
     CORSAction {
-      Action(parse.json) { json =>
-        json.body.transform(toUpdate).map { updateSelector =>
+      Action(parse.json) { request =>
+        request.body.transform(validateFabrication).map { jsObj =>
           Async {
-            coll.update(
-              Json.obj("_id" -> Json.obj("$oid" -> id)),
-              updateSelector
-            ).map { lastError =>
-              if (lastError.ok)
-                Ok(updateSelector)
-              else
-                InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+            accountCollection.find(
+              jsObj.transform((__ \ "_id" \ "$oid").json.copyFrom(( __ \ "client" \ "_id").json.pick)).get
+            ).one[JsObject].map {
+              case Some(clientObj) => Async {
+                val updateObj = (jsObj ++ Json.obj("client" -> clientObj.transform(outputAccount).get)).
+                  transform(toUpdate).get
+                fabCollection.update(
+                  Json.obj("_id" -> Json.obj("$oid" -> id)),
+                  updateObj
+                ).map { lastError =>
+                  if (lastError.ok)
+                    Ok(updateObj)
+                  else
+                    InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+                }
+              }
+              case None => BadRequest(Json.obj("err" -> "Incoherent Client ID"))
             }
           }
-        }.getOrElse(InternalServerError)
+        }.recoverTotal { err =>
+          BadRequest(JsError.toFlatJson(err))
+        }
       }
     }
   //  }
 
+//  def updateOne(id: String) = //Restrict(Array("MANAGE_FABRICATIONS"), new SecurityHandler) {
+//    CORSAction {
+//      Action(parse.json) { json =>
+//        json.body.transform(validateFabrication andThen toUpdate).map { updateObj =>
+//          Async {
+//            fabCollection.update(
+//              Json.obj("_id" -> Json.obj("$oid" -> id)),
+//              updateObj
+//            ).map { lastError =>
+//              if (lastError.ok)
+//                Ok(updateObj)
+//              else
+//                InternalServerError(JsString("exception %s".format(lastError.errMsg)))
+//            }
+//          }
+//        }.getOrElse(InternalServerError)
+//      }
+//    }
+//  //  }
+//
   def saveAttachment(idFab: String) = CORSAction {
     Action(parse.temporaryFile) { request =>
       request.getQueryString("name") match {
