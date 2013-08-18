@@ -8,17 +8,11 @@ object ApplicationBuild extends Build {
   val appVersion      = "1.0-SNAPSHOT"
 
   val appDependencies = Seq(
-    "play-autosource"   %% "reactivemongo"       % "0.1-SNAPSHOT",
-    "org.reactivemongo" %% "play2-reactivemongo" % "0.9",
-    "be.objectify"      %% "deadbolt-scala"      % "2.1-RC2"
+    "org.reactivemongo" %% "play2-reactivemongo" % "0.9"
   )
 
 
   val main = play.Project(appName, appVersion, appDependencies).settings(
-    resolvers += Resolver.url("Objectify Play Repository", url("http://schaloner.github.com/releases/"))(Resolver.ivyStylePatterns),
-    resolvers += Resolver.url("Objectify Play Repository - snapshots", url("http://schaloner.github.com/snapshots/"))(Resolver.ivyStylePatterns),
-    resolvers += "Mandubian repository snapshots" at "https://github.com/mandubian/mandubian-mvn/raw/master/snapshots/", 
-    resolvers += "Mandubian repository releases" at "https://github.com/mandubian/mandubian-mvn/raw/master/releases/",
     resolvers += "typesafe" at "http://repo.typesafe.com/typesafe/repo"
   )
 

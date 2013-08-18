@@ -1,0 +1,7 @@
+- supprimer l'objet DBConnection en utilisant proprement le plugin reactivemongo pour play
+- uniformiser la gestion des erreurs
+- gérer le problème de sécurité CSRF
+- ajouter les notifications dans le front
+- ajouter un logger sur toutes les actions
+- implémenter la sécurité
+- créer des controlleurs spécifiques pour les clients

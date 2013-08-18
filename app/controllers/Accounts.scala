@@ -7,24 +7,22 @@ import reactivemongo.bson.BSONObjectID
 import play.modules.reactivemongo.json.collection.JSONCollection
 import jsonFormaters.AccountsFormaters._
 import jsonFormaters.CommonFormaters._
-import utils.{CORSAction, DBConnection}
+import utils.DBConnection
 import scala.concurrent.ExecutionContext.Implicits.global
-import security.SecurityHandler
-import be.objectify.deadbolt.core.PatternType
-import be.objectify.deadbolt.scala.DeadboltActions
 import reactivemongo.core.commands.{LastError, GetLastError}
 import play.modules.reactivemongo.MongoController
+import actions.{AuthenticatedUser, CORSAction}
 
 
-object Accounts extends Controller with MongoController with DeadboltActions {
+object Accounts extends Controller with MongoController {
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
 
   accountsColl.indexesManager.ensure(
     Index(Seq("status" -> IndexType.Ascending), None))
 
-  def createAccount = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    CORSAction{
+  def createAccount = CORSAction {
+    AuthenticatedUser {
       Action (parse.json) { json =>
         json.body.transform(
           validateAccount andThen
@@ -44,6 +42,7 @@ object Accounts extends Controller with MongoController with DeadboltActions {
         }
       }
     }
+  }
 //  }
 
   def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {

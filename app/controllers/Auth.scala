@@ -7,10 +7,14 @@ import play.api.data._
 import play.api.libs.json._
 import play.api.cache.Cache
 import play.api.Play.current
-import utils.CORSAction
+import utils.DBConnection
+import play.modules.reactivemongo.MongoController
+import play.modules.reactivemongo.json.collection.JSONCollection
+import actions.CORSAction
 
-object Auth extends Controller {
+object Auth extends Controller with MongoController {
 
+  val usersColl = DBConnection.db.collection[JSONCollection]("users")
   val authSessionAttribute = current.configuration.getString("auth.attribute").get
   val authVerifyURL = current.configuration.getString("auth.verifyURL").get
 
@@ -27,7 +31,14 @@ object Auth extends Controller {
               val status = (result.json \ "status").as[String]
               if (status == "okay") {
                 val email = (result.json \ "email").as[String]
-                Ok(Json.obj(authSessionAttribute -> email)).withSession((authSessionAttribute, email))
+                Async{
+                  usersColl.find(result.json.transform((__ \ "email").json.pickBranch).get).one[JsObject].map {
+                    case Some(user) => Ok(user).withSession(authSessionAttribute -> email)
+                    case None => BadRequest("This user doesn't exist")
+                  }.recover{ case e =>
+                    InternalServerError(JsString("exception %s".format(e.getMessage)))
+                  }
+                }
               }
               else BadRequest("Invalid assertion")
             }

@@ -14,7 +14,6 @@ import play.api.Play.current
 import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
-import models.{User, UserRight}
 
 class AccountSpec extends Specification {
 
@@ -29,12 +28,9 @@ class AccountSpec extends Specification {
   val emailUser = "test@test.fr"
   val manageAccountsRight = "MANAGE_ACCOUNTS"
   def session(email: String) = ("email", email)
-  def setCache(email: String, right: String) =
-    Cache.set("User." + email, User(email, List(UserRight(right))))
 
   "POST /accounts" should {
     "insert a new account with the status ACTIVE" in new WithApplication {
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/api/accounts")
         .withJsonBody(defaultAccountJson)
         .withSession(session(emailUser)))
@@ -45,7 +41,6 @@ class AccountSpec extends Specification {
     }
 
     "generate an error when name is missing" in new WithApplication {
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val accountWithoutName = defaultAccountJson.transform((__ \ "name").json.prune)
 
       val Some(result) = route(FakeRequest(POST, "/api/accounts")
@@ -68,7 +63,6 @@ class AccountSpec extends Specification {
 
   "GET /accounts" should {
     "generate empty array when the collection is empty" in new WithApplication {
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       accountsColl.drop()
 
       val Some(result) = route(FakeRequest(GET, "/api/accounts")
@@ -80,7 +74,6 @@ class AccountSpec extends Specification {
     }
 
     "return accounts that have just been inserted" in new WithApplication {
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result1) = route(FakeRequest(POST, "/api/accounts")
         .withJsonBody(defaultAccountJson)
         .withSession(session(emailUser)))
@@ -112,7 +105,6 @@ class AccountSpec extends Specification {
 
   "GET /accounts/:id" should {
     "return the jsonFormaters of the inserted account" in new WithApplication {
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/api/accounts")
         .withJsonBody(defaultAccountJson)
         .withSession(session(emailUser)))
@@ -128,14 +120,12 @@ class AccountSpec extends Specification {
     }
 
     "return a 404 error if the id is not a Mongo ObjectId" in new WithApplication{
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(GET, "/api/accounts/azerty")
         .withSession(session(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
     }
 
     "return a 404 error if the id is not in the database" in new WithApplication{
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(GET, "/api/accounts/51abb041ae01081d007afa11")
         .withSession(session(emailUser)))
       status(result) must beEqualTo(NOT_FOUND)
@@ -160,7 +150,6 @@ class AccountSpec extends Specification {
   "PUT /accounts/:id" should {
     "update the fields" in new WithApplication {
       // First request to create an account
-      setCache(emailUser, "MANAGE_ACCOUNTS")
       val Some(result) = route(FakeRequest(POST, "/api/accounts")
         .withJsonBody(defaultAccountJson)
         .withSession(session(emailUser)))
@@ -190,7 +179,7 @@ class AccountSpec extends Specification {
       val json3 = Json.parse(contentAsString(result3))
       (__ \ "name")(json3) must contain(JsString("Free Software Company"))
       (__ \ "contacts")(json3) must contain(JsArray(Seq(JsString("5"), JsString("6"))))
-      (__ \ "modifiedOn")(json3) must not equalTo (((__ \ "createdOsn")(json3)))
+      (__ \ "modifiedOn")(json3) must not equalTo (__ \ "createdOsn")(json3)
     }
 
 //    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {

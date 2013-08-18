@@ -2,8 +2,7 @@ package controllers
 
 import play.api.libs.json._
 import play.modules.reactivemongo.MongoController
-import be.objectify.deadbolt.scala.DeadboltActions
-import utils.{CORSAction, DBConnection}
+import utils.DBConnection
 import jsonFormaters.AccountsFormaters._
 import jsonFormaters.CommonFormaters._
 import reactivemongo.core.commands.GetLastError
@@ -16,14 +15,15 @@ import java.io.File
 import jsonFormaters.FabricationFormaters._
 import scala.concurrent.Future
 import org.joda.time.DateTime
+import actions.CORSAction
 
-object Fabrications extends Controller with MongoController with DeadboltActions{
+object Fabrications extends Controller with MongoController {
   val fabCollection = DBConnection.db.collection[JSONCollection]("fabrications")
   val accountCollection = DBConnection.db.collection[JSONCollection]("accounts")
   val seqCollection = DBConnection.db.collection[JSONCollection]("sequences")
 
   def generateFabId: Future[JsObject] = {
-    val currentYear = ((new DateTime).getYear() % 100)
+    val currentYear = (new DateTime).getYear() % 100
     val futureId: Future[Option[JsObject]] = seqCollection.find(Json.obj(
       "_id" -> "fabrications",
       "year" -> currentYear)).one[JsObject]
