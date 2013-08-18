@@ -11,7 +11,7 @@ import utils.DBConnection
 import scala.concurrent.ExecutionContext.Implicits.global
 import reactivemongo.core.commands.{LastError, GetLastError}
 import play.modules.reactivemongo.MongoController
-import actions.{AuthenticatedUser, CORSAction}
+import actions.{UserHasRight, CORSAction}
 
 
 object Accounts extends Controller with MongoController {
@@ -22,7 +22,7 @@ object Accounts extends Controller with MongoController {
     Index(Seq("status" -> IndexType.Ascending), None))
 
   def createAccount = CORSAction {
-    AuthenticatedUser {
+    UserHasRight("WRITE_ACCOUNT") {
       Action (parse.json) { json =>
         json.body.transform(
           validateAccount andThen

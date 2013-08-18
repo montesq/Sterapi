@@ -9,20 +9,26 @@ import play.modules.reactivemongo.json.collection.JSONCollection
 import play.modules.reactivemongo.MongoController
 
 
-case class AuthenticatedUser[A](action: Action[A]) extends Action[A]{
+case class UserHasRight[A](right: String = "")(action: Action[A]) extends Action[A]{
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
 
   def apply(request: Request[A]): Result = {
-    System.out.println(request.session)
-    System.out.println(request.session.get("email"))
     request.session.get("email") match {
       case None => Forbidden(Json.obj("Error" -> "You're not authenticated"))
       case Some(value) => {
-        Async{
-          usersColl.find(Json.obj("email" -> value)).one[JsObject].map {
-            case None => Forbidden(Json.obj("Error" -> "The user is not present in the database"))
-            case Some(json) => action(request)
+        if (right.isEmpty) action(request)
+        else {
+          Async{
+            usersColl.find(Json.obj("email" -> value)).one[JsObject].map {
+              case None => Forbidden(Json.obj("Error" -> "The user is not present in the database"))
+              case Some(json) => {
+                val profiles = (json \ "profiles").asOpt[List[String]].getOrElse(Nil)
+                if (convertProfilesToRights(profiles).exists(_ == right))
+                  action(request)
+                else Forbidden("The user has not the right " + right)
+              }
+            }
           }
         }
       }
@@ -30,4 +36,18 @@ case class AuthenticatedUser[A](action: Action[A]) extends Action[A]{
   }
 
   lazy val parser = action.parser
+
+  def convertProfilesToRights(profiles: List[String]) : List[String] = {
+    profiles match {
+      case Nil => Nil
+      case t::q => t :: convertProfilesToRights(profilesMatrix.getOrElse(t, Nil) ::: q)
+    }
+  }
+
+  val profilesMatrix: Map[String, List[String]] = Map(
+    "ADMIN" -> List("STERILIZATION_MANAGER", "ACCOUNT_MANAGER"),
+    "STERILIZATION_MANAGER" -> List("READ_STERILIZATION", "WRITE_STERILIZATION"),
+    "ACCOUNT_MANAGER" -> List("READ_ACCOUNT", "WRITE_ACCOUNT"),
+    "STERILIZATION_CLIENT" -> List("READ_STERILIZATION")
+  )
 }
