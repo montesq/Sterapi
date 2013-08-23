@@ -11,7 +11,8 @@ import utils.DBConnection
 import scala.concurrent.ExecutionContext.Implicits.global
 import reactivemongo.core.commands.{LastError, GetLastError}
 import play.modules.reactivemongo.MongoController
-import actions.{UserHasRight, CORSAction}
+import actions.CORSAction
+import actions.Security._
 
 
 object Accounts extends Controller with MongoController {

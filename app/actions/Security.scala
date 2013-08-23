@@ -6,12 +6,12 @@ import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 import play.modules.reactivemongo.json.collection.JSONCollection
-import play.modules.reactivemongo.MongoController
 
-
-case class UserHasRight[A](right: String = "")(action: Action[A]) extends Action[A]{
+object Security {
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
+
+  case class UserHasRight[A](right: String = "")(action: Action[A]) extends Action[A]{
 
   def apply(request: Request[A]): Result = {
     request.session.get("email") match {
@@ -50,4 +50,5 @@ case class UserHasRight[A](right: String = "")(action: Action[A]) extends Action
     "ACCOUNT_MANAGER" -> List("READ_ACCOUNT", "WRITE_ACCOUNT"),
     "STERILIZATION_CLIENT" -> List("READ_STERILIZATION")
   )
+}
 }
