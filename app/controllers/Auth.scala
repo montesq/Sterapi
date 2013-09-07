@@ -33,6 +33,7 @@ object Auth extends Controller with MongoController {
                 val email = (result.json \ "email").as[String]
                 Async{
                   usersColl.find(result.json.transform((__ \ "email").json.pickBranch).get).one[JsObject].map {
+                    //TODO: create the cookie with a couple email + timestamp
                     case Some(user) => Ok(user).withSession(authSessionAttribute -> email)
                     case None => BadRequest("This user doesn't exist")
                   }.recover{ case e =>
