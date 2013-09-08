@@ -1,5 +1,6 @@
-import org.specs2.mutable._
+package test
 
+import org.specs2.mutable._
 import play.api.libs.ws.WS
 import org.specs2.mutable._
 import play.api.test._

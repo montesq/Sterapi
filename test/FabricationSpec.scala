@@ -1,5 +1,6 @@
-import org.specs2.mutable._
+package test
 
+import org.specs2.mutable._
 import play.api.libs.json._
 import play.api.cache.Cache
 import play.api.Play.current
