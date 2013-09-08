@@ -15,6 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import play.api.Logger
 
 class AccountSpec extends Specification {
 
@@ -30,7 +31,7 @@ class AccountSpec extends Specification {
 
   val emailUser = "test@test.fr"
   val manageAccountsRight = "ACCOUNT_MANAGER"
-  Await.result(usersColl.insert(Json.obj("email" -> emailUser, "Profiles" -> List(manageAccountsRight))),
+  Await.result(usersColl.insert(Json.obj("email" -> emailUser, "profiles" -> List(manageAccountsRight))),
     Duration(10, SECONDS))
   def session(email: String) = ("email", email)
 

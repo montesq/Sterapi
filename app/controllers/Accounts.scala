@@ -23,8 +23,7 @@ object Accounts extends Controller with MongoController {
     Index(Seq("status" -> IndexType.Ascending), None))
 
   def createAccount =
-    Authenticated (parse.json) { user => json =>
-      System.out.println(user.email)
+    Authenticated(parse.json)(Some("WRITE_ACCOUNT")) { user => json =>
       json.body.transform(
         validateAccount andThen
           addId andThen
@@ -44,8 +43,7 @@ object Accounts extends Controller with MongoController {
     }
 
   def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
-    CORSAction {
-      Action {
+    Authenticated(Some("READ_ACCOUNT")) { user => request =>
         Async {
           val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
             .sort(Json.obj("_id" -> 1))
@@ -58,9 +56,7 @@ object Accounts extends Controller with MongoController {
             InternalServerError(JsString("exception %s".format(e.getMessage)))
           }
         }
-      }
     }
-//  }
 
   def getAccount(id: String) = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {

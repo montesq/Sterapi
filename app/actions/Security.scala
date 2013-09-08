@@ -7,37 +7,66 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 import play.modules.reactivemongo.json.collection.JSONCollection
 import play.api.mvc.BodyParsers._
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
+import reactivemongo.api.collections.GenericQueryBuilder
+import reactivemongo.api.Cursor
+import play.Logger
 
 object Security {
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
 
-  case class User(email: String, rights: List[String], clients: List[String])
+  case class User(email: String, rights: List[String] = List(), clients: List[String] = List())
 
-  def Authenticated[A](p: BodyParser[A])(f: User => Request[A] => Result) = {
+  def Authenticated[A](p: BodyParser[A])(requiredRight: Option[String])(f: User => Request[A] => Result) = {
     CORSAction {
       Action(p) { request =>
-        val result = for {
-          id <- request.session.get("email")
-          user <- Await.result(usersColl.find(Json.obj("email" -> id)).one[JsObject], Duration(10, SECONDS))
-          email <- (user \ "email").asOpt[String]
-          profiles <- (user \ "profiles").asOpt[List[String]]
-        } yield f(User(
-            email,
-            convertProfilesToRights(profiles),
-            List()
-          ))(request)
-        result getOrElse Unauthorized
+        request.session.get("email") match {
+          case None => Unauthorized(Json.obj("error" -> "The user is not authenticated"))
+          case Some(email) => Async {
+            val futureUser = usersColl.find(Json.obj("email" -> email)).one[JsObject]
+            futureUser map { mayUser =>
+              mayUser match {
+                case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
+                case Some(user) => {
+                  requiredRight match {
+                    case None => f(User(email))(request)
+                    case Some(right) => Async {
+                      val futureRelatedClients = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
+                        projection(Json.obj("_id" -> 1)).
+                        cursor[JsObject].
+                        toList
+                      futureRelatedClients map { clients =>
+                        val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
+                        val result = for {
+                          email <- (user \ "email").asOpt[String]
+                          profiles <- (user \ "profiles").asOpt[List[String]]
+                          rights = convertProfilesToRights(profiles)
+                          if rights contains right
+                        } yield
+                          f(User(
+                            email,
+                            rights,
+                            clientIdList
+                          ))(request)
+                        result getOrElse Unauthorized(Json.obj("error" -> JsString("You don't have the right " + right)))
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
 
   // Overloaded method to use the default body parser
-  def Authenticated(f: User => Request[AnyContent] => Result): Action[AnyContent]  = {
-    Authenticated(parse.anyContent)(f)
+  def Authenticated(requiredRight: Option[String])(f: User => Request[AnyContent] => Result): Action[AnyContent]  = {
+    Authenticated[AnyContent](parse.anyContent)(requiredRight)(f)
   }
 
   def convertProfilesToRights(profiles: List[String]) : List[String] = {
