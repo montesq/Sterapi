@@ -33,6 +33,12 @@ class AccountSpec extends Specification {
   val manageAccountsRight = "ACCOUNT_MANAGER"
   Await.result(usersColl.insert(Json.obj("email" -> emailUser, "profiles" -> List(manageAccountsRight))),
     Duration(10, SECONDS))
+
+  val unauthorizedUser = "unauthorized@test.fr"
+  val steClientRight = "STERILIZATION_CLIENT"
+  Await.result(usersColl.insert(Json.obj("email" -> unauthorizedUser, "profiles" -> List(steClientRight))),
+    Duration(10, SECONDS))
+
   def session(email: String) = ("email", email)
 
   "POST /accounts" should {
@@ -57,14 +63,13 @@ class AccountSpec extends Specification {
       (__ \ "obj.name")(errJson) must containAnyOf(Seq(ErrorValidation.missingPath))
     }
 
-//    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
-//      Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
-//      val Some(result) = route(FakeRequest(POST, "/api/accounts")
-//        .withJsonBody(defaultAccountJson)
-//        .withSession(session(emailUser)))
-//
-//      status(result) must equalTo(FORBIDDEN)
-//    }
+    "return a 401 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      val Some(result) = route(FakeRequest(POST, "/api/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withSession(session(unauthorizedUser)))
+
+      status(result) must equalTo(UNAUTHORIZED)
+    }
   }
 
   "GET /accounts" should {
@@ -99,14 +104,13 @@ class AccountSpec extends Specification {
       listJsonAccounts.as[JsArray].value must contain(account2)
     }
 
-//    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
-//      Cache.set("User." + emailUser, User(emailUser, List(UserRight("OTHER_RIGHT"))))
-//      val Some(result) = route(FakeRequest(GET, "/api/accounts")
-//        .withJsonBody(defaultAccountJson)
-//        .withSession(session(emailUser)))
-//
-//      status(result) must equalTo(FORBIDDEN)
-//    }
+    "return a 401 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      val Some(result) = route(FakeRequest(GET, "/api/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withSession(session(unauthorizedUser)))
+
+      status(result) must equalTo(UNAUTHORIZED)
+    }
   }
 
   "GET /accounts/:id" should {
@@ -137,20 +141,17 @@ class AccountSpec extends Specification {
       status(result) must beEqualTo(NOT_FOUND)
     }
 
-//    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
-//      Cache.set("User." + emailUser, User(emailUser, List(UserRight("MANAGE_ACCOUNTS"))))
-//      val Some(result) = route(FakeRequest(POST, "/api/accounts")
-//        .withJsonBody(defaultAccountJson)
-//        .withSession(session(emailUser)))
-//      val json = Json.parse(contentAsString(result))
-//      val id = (__ \ "_id")(json).head.as[String]
-//
-//      val unauthorizedUser = "unauthorized@test.fr"
-//      Cache.set("User." + unauthorizedUser, User(unauthorizedUser, List(UserRight("OTHER_RIGHT"))))
-//      val Some(result2) = route(FakeRequest(GET, "/api/accounts/" + id)
-//        .withSession(session(unauthorizedUser)))
-//      status(result2) must equalTo(FORBIDDEN)
-//    }
+    "return a 401 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      val Some(result) = route(FakeRequest(POST, "/api/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withSession(session(emailUser)))
+      val json = Json.parse(contentAsString(result))
+      val id = (__ \ "_id")(json).head.as[String]
+
+      val Some(result2) = route(FakeRequest(GET, "/api/accounts/" + id)
+        .withSession(session(unauthorizedUser)))
+      status(result2) must equalTo(UNAUTHORIZED)
+    }
   }
 
   "PUT /accounts/:id" should {
@@ -188,21 +189,18 @@ class AccountSpec extends Specification {
       (__ \ "modifiedOn")(json3) must not equalTo (__ \ "createdOsn")(json3)
     }
 
-//    "return a 403 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
-//      // First request to create the account
-//      setCache(emailUser, "MANAGE_ACCOUNTS")
-//      val Some(result) = route(FakeRequest(POST, "/api/accounts")
-//        .withJsonBody(defaultAccountJson)
-//        .withSession(session(emailUser)))
-//      val json = Json.parse(contentAsString(result))
-//      val id = (__ \ "_id")(json).head.as[String]
-//
-//      // Second request to check the unauthorized user get a 403 error
-//      val unauthorizedUser = "unauthorized@test.fr"
-//      setCache(unauthorizedUser, "MANAGE_ACCOUNTS")
-//      val Some(result2) = route(FakeRequest(PUT, "/api/accounts/" + id)
-//        .withJsonBody(json)
-//        .withSession(session(unauthorizedUser)))
-//    }
+    "return a 401 error if the user has not the right MANAGE_ACCOUNTS" in new WithApplication {
+      // First request to create the account
+      val Some(result) = route(FakeRequest(POST, "/api/accounts")
+        .withJsonBody(defaultAccountJson)
+        .withSession(session(emailUser)))
+      val json = Json.parse(contentAsString(result))
+      val id = (__ \ "_id")(json).head.as[String]
+
+      // Second request to check the unauthorized user get a 403 error
+      val Some(result2) = route(FakeRequest(PUT, "/api/accounts/" + id)
+        .withJsonBody(json)
+        .withSession(session(unauthorizedUser)))
+    }
   }
 }
