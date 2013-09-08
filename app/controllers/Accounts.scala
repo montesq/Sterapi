@@ -8,10 +8,8 @@ import play.modules.reactivemongo.json.collection.JSONCollection
 import jsonFormaters.AccountsFormaters._
 import jsonFormaters.CommonFormaters._
 import utils.DBConnection
-import scala.concurrent.ExecutionContext.Implicits.global
-import reactivemongo.core.commands.{LastError, GetLastError}
+import reactivemongo.core.commands.GetLastError
 import play.modules.reactivemongo.MongoController
-import actions.CORSAction
 import actions.Security._
 
 

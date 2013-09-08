@@ -7,11 +7,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 import play.modules.reactivemongo.json.collection.JSONCollection
 import play.api.mvc.BodyParsers._
-import scala.concurrent.{Future, Await}
-import scala.concurrent.duration._
-import reactivemongo.api.collections.GenericQueryBuilder
-import reactivemongo.api.Cursor
-import play.Logger
 
 object Security {
 
