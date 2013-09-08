@@ -24,7 +24,7 @@ object Auth extends Controller with MongoController {
         Async {
           val postBody = Map(
             "assertion" -> Seq((assertion \ "assertion").as[String]),
-            "audience" -> Seq(json.headers.get("Origin").getOrElse(""))
+            "audience" -> Seq(json.headers.get("Origin").getOrElse("http://localhost:9000"))
           )
           WS.url(authVerifyURL).post(postBody).map { result =>
             if (result.status == OK) {

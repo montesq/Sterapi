@@ -22,29 +22,26 @@ object Accounts extends Controller with MongoController {
   accountsColl.indexesManager.ensure(
     Index(Seq("status" -> IndexType.Ascending), None))
 
-  def createAccount = CORSAction {
-    UserHasRight("WRITE_ACCOUNT") {
-      Action (parse.json) { json =>
-        json.body.transform(
-          validateAccount andThen
-            addId andThen
-            addStatus(activeStatus) andThen
-            addTrailingDates)
-          .map { json2 =>
-          Async {
-            accountsColl.insert(json2, GetLastError(awaitJournalCommit = true)).map { lastError =>
-              if (lastError.ok)
-                Created(json2.transform(outputAccount).get)
-              else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
-            }
+  def createAccount =
+    Authenticated (parse.json) { user => json =>
+      System.out.println(user.email)
+      json.body.transform(
+        validateAccount andThen
+          addId andThen
+          addStatus(activeStatus) andThen
+          addTrailingDates)
+        .map { json2 =>
+        Async {
+          accountsColl.insert(json2, GetLastError(awaitJournalCommit = true)).map { lastError =>
+            if (lastError.ok)
+              Created(json2.transform(outputAccount).get)
+            else InternalServerError(JsString("exception %s".format(lastError.errMsg)))
           }
-        }.recoverTotal { err =>
-          BadRequest(JsError.toFlatJson(err))
         }
+      }.recoverTotal { err =>
+        BadRequest(JsError.toFlatJson(err))
       }
     }
-  }
-//  }
 
   def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     CORSAction {

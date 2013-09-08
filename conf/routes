@@ -20,7 +20,6 @@ POST           /api/fabrications/:idFab/attachments               controllers.Fa
 GET            /api/fabrications/:idFab/attachments/:idAtt        controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
 
 GET            /api/test                                          controllers.Test.test
-GET            /api/test2                                         controllers.Test.test2
 
 # Map static resources from the /public folder to the /assets URL path
 GET            /*file                                             controllers.Assets.at(path="/public", file)

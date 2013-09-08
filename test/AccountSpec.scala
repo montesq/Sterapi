@@ -1,5 +1,3 @@
-package test
-
 import org.specs2.mutable._
 
 import play.api.test._
@@ -14,11 +12,15 @@ import play.api.Play.current
 import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class AccountSpec extends Specification {
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
   accountsColl.drop()
+  val usersColl = DBConnection.db.collection[JSONCollection]("users")
+  usersColl.drop()
 
   val defaultAccountJson = Json.obj(
     "name" -> "ACME Company",
@@ -26,7 +28,9 @@ class AccountSpec extends Specification {
   )
 
   val emailUser = "test@test.fr"
-  val manageAccountsRight = "MANAGE_ACCOUNTS"
+  val manageAccountsRight = "ACCOUNT_MANAGER"
+  Await.result(usersColl.insert(Json.obj("email" -> emailUser, "Profiles" -> List(manageAccountsRight))),
+    Duration(10, SECONDS))
   def session(email: String) = ("email", email)
 
   "POST /accounts" should {

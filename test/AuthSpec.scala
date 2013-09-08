@@ -1,3 +1,4 @@
+
 import org.specs2.mutable._
 
 import play.api.libs.ws.{Response, WS}
@@ -24,7 +25,7 @@ class AuthSpec extends Specification {
 
 
   "POST /api/login" should {
-    "give the origin" in new WithApplication {
+    "return 200 with a good assertion" in new WithApplication {
       val Some(result) = route(FakeRequest(POST, "/api/login").withBody(wsResult.json))
       status(result) must equalTo(OK)
     }
