@@ -19,6 +19,8 @@ PUT            /api/fabrications/:id                              controllers.Fa
 POST           /api/fabrications/:idFab/attachments               controllers.Fabrications.saveAttachment(idFab: String)
 GET            /api/fabrications/:idFab/attachments/:idAtt        controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
 
+PUT            /api/users/:id/fabClient                            controllers.Users.addFabClient(id: String)
+
 GET            /api/test                                          controllers.Test.test
 
 # Map static resources from the /public folder to the /assets URL path

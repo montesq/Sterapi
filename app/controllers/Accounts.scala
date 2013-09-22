@@ -40,7 +40,7 @@ object Accounts extends Controller with MongoController {
       }
     }
 
-  def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
+  def listAccounts =
     Authenticated(Some("READ_ACCOUNT")) { user => request =>
       Async {
         val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
