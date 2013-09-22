@@ -42,18 +42,18 @@ object Accounts extends Controller with MongoController {
 
   def listAccounts = //Restrict(Array("MANAGE_ACCOUNTS"), new SecurityHandler) {
     Authenticated(Some("READ_ACCOUNT")) { user => request =>
-        Async {
-          val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
-            .sort(Json.obj("_id" -> 1))
-            .cursor[JsObject]
-            .toList
-          accountsFutureList.map { list =>
-            val transformedList = for (account <- list) yield account.transform(outputAccount).get
-            Ok(JsArray(transformedList))
-          }.recover { case e =>
-            InternalServerError(JsString("exception %s".format(e.getMessage)))
-          }
+      Async {
+        val accountsFutureList = accountsColl.find(Json.obj("status" -> activeStatus))
+          .sort(Json.obj("_id" -> 1))
+          .cursor[JsObject]
+          .toList
+        accountsFutureList.map { list =>
+          val transformedList = for (account <- list) yield account.transform(outputAccount).get
+          Ok(JsArray(transformedList))
+        }.recover { case e =>
+          InternalServerError(JsString("exception %s".format(e.getMessage)))
         }
+      }
     }
 
   def getAccount(id: String) =

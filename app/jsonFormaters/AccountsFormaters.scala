@@ -19,4 +19,8 @@ object AccountsFormaters {
     removeOid andThen
       convertDate((__ \ "createdOn")) andThen
       convertDate((__ \ "modifiedOn"))
+
+  val minimalOutputAccount =
+    removeOid andThen
+      ((__ \ "name").json.pickBranch)
 }

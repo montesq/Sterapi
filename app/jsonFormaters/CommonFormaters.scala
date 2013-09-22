@@ -58,4 +58,12 @@ object CommonFormaters {
         path.json.copyFrom((path \ "$date").json.pick[JsString])
       )
   }
+
+  def jsonError(errorCode :String, errorMessage: String ,details: JsObject = Json.obj()): JsObject =
+    Json.obj("errorCode" -> errorCode,
+      "errorMessage" -> errorMessage,
+      "details" -> details)
+
+  def jsonDatabaseError: JsObject =
+    jsonError("UNAVAILABLE_DATABASE", "The database is not available")
 }

@@ -1,5 +1,6 @@
 package actions
 
+import play.api.Logger._
 import play.api.mvc._
 import play.api.mvc.Results._
 import play.api.libs.json._
@@ -18,34 +19,41 @@ object Security {
   def Authenticated[A](p: BodyParser[A])(requiredRight: Option[String])(f: User => Request[A] => Result) = {
     CORSAction {
       Action(p) { request =>
+        logger.debug("-- Enter Authenticated action --")
         request.session.get("email") match {
           case None => Unauthorized(Json.obj("error" -> "The user is not authenticated"))
           case Some(email) => Async {
-            val futureUser = usersColl.find(Json.obj("email" -> email)).one[JsObject]
-            futureUser map {
+            logger.debug("email: " + email)
+
+            usersColl.find(Json.obj("email" -> email)).one[JsObject].map {
               case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
               case Some(user) => {
+                logger.debug("User found in the database : " + user)
+
                 requiredRight match {
                   case None => f(User(email))(request)
-                  case Some(right) => Async {
-                    val futureRelatedClients = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
-                      projection(Json.obj("_id" -> 1)).
-                      cursor[JsObject].
-                      toList
-                    futureRelatedClients map { clients =>
-                      val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
-                      val result = for {
-                        email <- (user \ "email").asOpt[String]
-                        profiles <- (user \ "profiles").asOpt[List[String]]
-                        rights = convertProfilesToRights(profiles)
-                        if rights contains right
-                      } yield
-                        f(User(
-                          email,
-                          rights,
-                          clientIdList
-                        ))(request)
-                      result getOrElse Unauthorized(Json.obj("error" -> JsString("You don't have the right " + right)))
+                  case Some(right) => {
+                    val profiles = (user \ "profiles").asOpt[List[String]].getOrElse(Nil)
+                    logger.debug("Profiles: " + profiles)
+
+                    val rights = convertProfilesToRights(profiles)
+                    logger.debug("Rights: " + rights)
+
+                    if (!(rights contains right))
+                      Unauthorized(Json.obj("error" -> JsString(email + " doesn't have the right " + right)))
+                    else Async {
+                      val clientList = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
+                        projection(Json.obj("_id" -> 1)).
+                        cursor[JsObject].
+                        toList
+                      clientList.map {
+                        clients => {
+                          val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
+                          logger.debug("ClientIdList: " + clientIdList)
+
+                          f(User(email, rights, clientIdList))(request)
+                        }
+                      }
                     }
                   }
                 }
