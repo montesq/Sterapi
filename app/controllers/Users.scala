@@ -21,7 +21,7 @@ object Users extends Controller with MongoController{
   def addFabClient(id: String) = Authenticated(Some("ACCOUNT_MANAGER")) { user => request =>
     Async {
       usersColl.update(Json.obj("email" -> id),
-        Json.obj("$push" -> Json.obj("profiles" -> "FABRICATION_CLIENT")),
+        Json.obj("$addToSet" -> Json.obj("profiles" -> "FABRICATION_CLIENT")),
         upsert = true).map { result =>
           Ok
       }.recover { case e =>
