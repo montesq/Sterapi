@@ -22,32 +22,30 @@ object Security {
           case None => Unauthorized(Json.obj("error" -> "The user is not authenticated"))
           case Some(email) => Async {
             val futureUser = usersColl.find(Json.obj("email" -> email)).one[JsObject]
-            futureUser map { mayUser =>
-              mayUser match {
-                case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
-                case Some(user) => {
-                  requiredRight match {
-                    case None => f(User(email))(request)
-                    case Some(right) => Async {
-                      val futureRelatedClients = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
-                        projection(Json.obj("_id" -> 1)).
-                        cursor[JsObject].
-                        toList
-                      futureRelatedClients map { clients =>
-                        val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
-                        val result = for {
-                          email <- (user \ "email").asOpt[String]
-                          profiles <- (user \ "profiles").asOpt[List[String]]
-                          rights = convertProfilesToRights(profiles)
-                          if rights contains right
-                        } yield
-                          f(User(
-                            email,
-                            rights,
-                            clientIdList
-                          ))(request)
-                        result getOrElse Unauthorized(Json.obj("error" -> JsString("You don't have the right " + right)))
-                      }
+            futureUser map {
+              case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
+              case Some(user) => {
+                requiredRight match {
+                  case None => f(User(email))(request)
+                  case Some(right) => Async {
+                    val futureRelatedClients = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
+                      projection(Json.obj("_id" -> 1)).
+                      cursor[JsObject].
+                      toList
+                    futureRelatedClients map { clients =>
+                      val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
+                      val result = for {
+                        email <- (user \ "email").asOpt[String]
+                        profiles <- (user \ "profiles").asOpt[List[String]]
+                        rights = convertProfilesToRights(profiles)
+                        if rights contains right
+                      } yield
+                        f(User(
+                          email,
+                          rights,
+                          clientIdList
+                        ))(request)
+                      result getOrElse Unauthorized(Json.obj("error" -> JsString("You don't have the right " + right)))
                     }
                   }
                 }
