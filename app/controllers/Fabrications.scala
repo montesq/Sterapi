@@ -125,7 +125,7 @@ object Fabrications extends Controller with MongoController {
           jsObj.transform((__ \ "_id" \ "$oid").json.copyFrom(( __ \ "client" \ "_id").json.pick)).get
         ).one[JsObject].map {
           case Some(clientObj) => Async {
-            val updateObj = (jsObj ++ Json.obj("client" -> clientObj.transform(outputAccount).get)).
+            val updateObj = (jsObj ++ Json.obj("client" -> clientObj.transform(minimalOutputAccount).get)).
               transform(toUpdate).get
             fabCollection.update(
               Json.obj("_id" -> id),
