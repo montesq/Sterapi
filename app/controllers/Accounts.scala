@@ -15,11 +15,6 @@ import actions.Security._
 
 object Accounts extends Controller with MongoController {
 
-  val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
-
-  accountsColl.indexesManager.ensure(
-    Index(Seq("status" -> IndexType.Ascending), None))
-
   def createAccount =
     Authenticated(parse.json)(Some("WRITE_ACCOUNT")) { user => json =>
       json.body.transform(

@@ -35,14 +35,15 @@ object Fabrications extends Controller with MongoController {
       "_id" -> "fabrications",
       "year" -> currentYear)).one[JsObject]
 
-    futureId.map { result => {
-      seqCollection.update(
-        Json.obj(
-        "_id" -> "fabrications",
-        "year" -> currentYear),
-        Json.obj("$inc" -> Json.obj("lastValue" -> 1)),
-        upsert = true
-      ).value
+    futureId.map {
+      result => {
+        seqCollection.update(
+          Json.obj(
+          "_id" -> "fabrications",
+          "year" -> currentYear),
+          Json.obj("$inc" -> Json.obj("lastValue" -> 1)),
+          upsert = true
+        ).value
         result match {
           case None => Json.obj("_id" -> JsString(currentYear + "0001"))
           case Some(jsObj) => {
@@ -93,10 +94,12 @@ object Fabrications extends Controller with MongoController {
 
   def list = Authenticated(Some("READ_FABRICATION")) { user => request =>
     Async {
-      val fabFutureList = fabCollection.find(Json.obj())
-        .sort(Json.obj("_id" -> 1))
-        .cursor[JsObject]
-        .toList
+      val clientFilter = if (user.rights contains "ADMIN") Json.obj()
+        else Json.obj("client._id" -> Json.obj("$in" -> user.clients))
+      val fabFutureList = fabCollection.find(clientFilter)
+      .sort(Json.obj("_id" -> 1))
+      .cursor[JsObject]
+      .toList(100)
       fabFutureList.map { list =>
         val transformedList = for (fabrication <- list) yield fabrication
         Ok(JsArray(transformedList))

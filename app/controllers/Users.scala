@@ -12,12 +12,6 @@ object Users extends Controller with MongoController{
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
 
-  usersColl.indexesManager.ensure(Index(Seq("email" -> IndexType.Ascending), None, unique = true))
-
-  usersColl.update(Json.obj("email" -> "montesq@aliceadsl.fr"),
-    Json.obj("email" -> "montesq@aliceadsl.fr", "profiles" -> Seq("ADMIN")),
-    upsert = true)
-
   def addFabClient(id: String) = Authenticated(Some("ACCOUNT_MANAGER")) { user => request =>
     Async {
       usersColl.update(Json.obj("email" -> id),
