@@ -11,12 +11,17 @@ import utils.DBConnection
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import actions.CORSAction
+import play.api.libs.Crypto._
+import java.lang.System
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.DateTime
 
 object Auth extends Controller with MongoController {
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
-  val authSessionAttribute = current.configuration.getString("auth.attribute").get
   val authVerifyURL = current.configuration.getString("auth.verifyURL").get
+  val authRequestHeader = current.configuration.getString("auth.requestHeader").get
+  val authExpiration = current.configuration.getString("auth.expiration").get
 
   def login = CORSAction {
     Action (parse.json) {  json =>
@@ -32,11 +37,12 @@ object Auth extends Controller with MongoController {
               if (status == "okay") {
                 val email = (result.json \ "email").as[String]
                 Async{
-                  usersColl.find(result.json.transform((__ \ "email").json.pickBranch).get).one[JsObject].map {
-                    //TODO: create the cookie with a couple email + timestamp
-                    case Some(user) => Ok(user).withSession(authSessionAttribute -> email)
+                  usersColl.find(Json.obj("email" -> email)).one[JsObject].map {
+                    case Some(user) => {
+                      Created(Json.obj("email" -> email, authRequestHeader -> generateToken(email)))
+                    }
                     case None => BadRequest("This user doesn't exist")
-                  }.recover{ case e =>
+                  }.recover { case e =>
                     InternalServerError(JsString("exception %s".format(e.getMessage)))
                   }
                 }
@@ -52,11 +58,19 @@ object Auth extends Controller with MongoController {
 
   def logout = CORSAction {
     Action { request =>
-      request.session.get(authSessionAttribute) match {
-        case Some(s) => Cache.remove("User." + s)
+      request.headers.get("authRequestHeader") match {
+        case Some(s) => Cache.remove(authRequestHeader + "." + s)
         case _ => ()
       }
-      Ok.withNewSession
+      Ok
     }
+  }
+
+  def generateToken(email: String) : String = {
+    val currentTimeStamp = System.currentTimeMillis()
+    val endTimeStamp = currentTimeStamp + authExpiration.toLong * 60 * 1000
+    val dateFormatter = ISODateTimeFormat.dateTime()
+    val endDate = dateFormatter.print(new DateTime(endTimeStamp))
+    encryptAES(Json.obj("email" -> email, "endDate" -> endDate).toString)
   }
 }

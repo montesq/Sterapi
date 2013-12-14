@@ -4,8 +4,8 @@
 
 OPTIONS        /api/*url                                          controllers.Cors.option(url: String)
 
-POST           /api/login                                         controllers.Auth.login
-POST           /api/logout                                        controllers.Auth.logout
+POST           /api/tokens                                        controllers.Auth.login
+DELETE         /api/tokens                                        controllers.Auth.logout
 
 POST           /api/accounts                                      controllers.Accounts.createAccount
 GET            /api/accounts                                      controllers.Accounts.listAccounts

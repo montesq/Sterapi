@@ -8,11 +8,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import utils.DBConnection
 import play.modules.reactivemongo.json.collection.JSONCollection
 import play.api.mvc.BodyParsers._
+import play.api.Play._
+import play.api.Logger.logger
+import play.modules.reactivemongo.json.collection.JSONCollection
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsString
+import scala.Some
+import actions.CORSAction
+import play.api.libs.Crypto._
+import org.joda.time.DateTime
+
 
 object Security {
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")
+  val authRequestHeader = current.configuration.getString("auth.requestHeader").get
+
 
   case class User(email: String, rights: List[String] = List(), clients: List[String] = List())
 
@@ -20,38 +32,47 @@ object Security {
     CORSAction {
       Action(p) { request =>
         logger.debug("-- Enter Authenticated action --")
-        request.session.get("email") match {
-          case None => Unauthorized(Json.obj("error" -> "The user is not authenticated"))
-          case Some(email) => Async {
+        request.headers.get("X-Auth-Token") match {
+          case Some(token) => {
+            logger.debug(s"X-Auth-Token: $token")
+            val jsonToken = Json.parse(decryptAES(token))
+            logger.debug(s"jsonToken: $jsonToken")
+            val email = (jsonToken \ "email").asOpt[String].getOrElse("")
             logger.debug("email: " + email)
+            val stringEndDate = (jsonToken \ "endDate").asOpt[String].getOrElse("")
+            logger.debug("endDate: " + stringEndDate)
+            val endDate: DateTime = new DateTime(stringEndDate)
+            val currentDate: DateTime = new DateTime()
+            if (endDate.isBefore(currentDate)) Unauthorized
+            else Async {
+              usersColl.find(Json.obj("email" -> email)).one[JsObject].map {
+                case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
+                case Some(user) => {
+                  logger.debug("User found in the database : " + user)
 
-            usersColl.find(Json.obj("email" -> email)).one[JsObject].map {
-              case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
-              case Some(user) => {
-                logger.debug("User found in the database : " + user)
+                  requiredRight match {
+                    case None => f(User(email))(request)
+                    case Some(right) => {
+                      val profiles = (user \ "profiles").asOpt[List[String]].getOrElse(Nil)
+                      logger.debug("Profiles: " + profiles)
 
-                requiredRight match {
-                  case None => f(User(email))(request)
-                  case Some(right) => {
-                    val profiles = (user \ "profiles").asOpt[List[String]].getOrElse(Nil)
-                    logger.debug("Profiles: " + profiles)
+                      val rights = convertProfilesToRights(profiles)
+                      logger.debug("Rights: " + rights)
 
-                    val rights = convertProfilesToRights(profiles)
-                    logger.debug("Rights: " + rights)
+                      if (!(rights contains right))
+                        Unauthorized(Json.obj("error" -> JsString(email + " doesn't have the right " + right)))
+                      else Async {
+                        val clientList = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
+                          projection(Json.obj("_id" -> 1)).
+                          cursor[JsObject].
+                          toList
+                        clientList.map {
+                          clients => {
+                            val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
+                            logger.debug("ClientIdList: " + clientIdList)
 
-                    if (!(rights contains right))
-                      Unauthorized(Json.obj("error" -> JsString(email + " doesn't have the right " + right)))
-                    else Async {
-                      val clientList = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
-                        projection(Json.obj("_id" -> 1)).
-                        cursor[JsObject].
-                        toList
-                      clientList.map {
-                        clients => {
-                          val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
-                          logger.debug("ClientIdList: " + clientIdList)
-
-                          f(User(email, rights, clientIdList))(request)
+                            f(User(email, rights, clientIdList))(request)
+                          }
                         }
                       }
                     }
@@ -60,6 +81,7 @@ object Security {
               }
             }
           }
+          case _ => Unauthorized
         }
       }
     }
