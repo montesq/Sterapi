@@ -19,7 +19,8 @@ PUT            /api/fabrications/:id                              controllers.Fa
 POST           /api/fabrications/:idFab/attachments               controllers.Fabrications.saveAttachment(idFab: String)
 GET            /api/fabrications/:idFab/attachments/:idAtt        controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
 
-PUT            /api/users/:id/fabClient                            controllers.Users.addFabClient(id: String)
+PUT            /api/users/:email/accounts/:idAccount/profiles/:idProfile  controllers.Users.addProfile(email: String, idAccount: String, idProfile: String)
+DELETE         /api/users/:email/accounts/:idAccount/profiles/:idProfile  controllers.Users.delProfile(email: String, idAccount: String, idProfile: String)
 
 GET            /api/test                                          controllers.Test.test
 

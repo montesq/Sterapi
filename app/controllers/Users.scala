@@ -12,15 +12,31 @@ object Users extends Controller with MongoController{
 
   val usersColl = DBConnection.db.collection[JSONCollection]("users")
 
-  def addFabClient(id: String) = Authenticated(Some("ACCOUNT_MANAGER")) { user => request =>
+//  def getUser = {}
+
+  def addProfile(email: String, idAccount: String, idProfile: String) =
+    Authenticated(Some("ACCOUNT_MANAGER")) { user => request =>
     Async {
-      usersColl.update(Json.obj("email" -> id),
-        Json.obj("$addToSet" -> Json.obj("profiles" -> "FABRICATION_CLIENT")),
+      usersColl.update(Json.obj("email" -> email),
+        Json.obj("$addToSet" -> Json.obj("profiles" -> Json.obj("account" -> idAccount, "role" -> idProfile))),
         upsert = true).map { result =>
-          Ok
+          NoContent
       }.recover { case e =>
         InternalServerError(JsString("exception %s".format(e.getMessage)))
       }
     }
   }
+
+  def delProfile(email: String, idAccount: String, idProfile: String) =
+    Authenticated(Some("ACCOUNT_MANAGER")) { user => request =>
+      Async {
+        usersColl.update(Json.obj("email" -> email),
+          Json.obj("$pull" -> Json.obj("profiles" -> Json.obj("account" -> idAccount, "role" -> idProfile))),
+          upsert = true).map { result =>
+          NoContent
+        }.recover { case e =>
+          InternalServerError(JsString("exception %s".format(e.getMessage)))
+        }
+      }
+    }
 }
