@@ -12,7 +12,7 @@ object Global extends GlobalSettings {
   usersColl.indexesManager.ensure(Index(Seq("email" -> IndexType.Ascending), None, unique = true))
 
   usersColl.update(Json.obj("email" -> "montesq@aliceadsl.fr"),
-    Json.obj("email" -> "montesq@aliceadsl.fr", "profiles" -> Seq("ADMIN")),
+    Json.obj("email" -> "montesq@aliceadsl.fr", "profiles" -> Seq(Json.obj("role" -> "ADMIN"))),
     upsert = true)
 
   val accountsColl = DBConnection.db.collection[JSONCollection]("accounts")

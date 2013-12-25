@@ -66,23 +66,23 @@ object Accounts extends Controller with MongoController {
     }
 
   def updateAccount(id: String) =
-    Authenticated(parse.json)(Some("WRITE_ACCOUNT")) { user => json =>
-      json.body.transform(validateAccount).flatMap { jsobj =>
-        jsobj.transform(toUpdate).map { updateSelector =>
-          Async {
-            accountsColl.update(
-              Json.obj("_id" -> Json.obj("$oid" -> id)),
-              updateSelector
-            ).map { lastError =>
-              if (lastError.ok)
-                Ok(updateSelector)
-              else
-                InternalServerError(JsString("exception %s".format(lastError.errMsg)))
-            }
+  Authenticated(parse.json)(Some("WRITE_ACCOUNT")) { user => json =>
+    json.body.transform(validateAccount).flatMap { jsobj =>
+      jsobj.transform(toUpdate).map { updateSelector =>
+        Async {
+          accountsColl.update(
+            Json.obj("_id" -> Json.obj("$oid" -> id)),
+            updateSelector
+          ).map { lastError =>
+            if (lastError.ok)
+              Ok(updateSelector)
+            else
+              InternalServerError(JsString("exception %s".format(lastError.errMsg)))
           }
         }
-      }.recoverTotal { e =>
-        BadRequest(JsError.toFlatJson(e))
       }
-   }
+    }.recoverTotal { e =>
+      BadRequest(JsError.toFlatJson(e))
+    }
+  }
 }

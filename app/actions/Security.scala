@@ -26,7 +26,7 @@ object Security {
   val authRequestHeader = current.configuration.getString("auth.requestHeader").get
 
 
-  case class User(email: String, rights: List[String] = List(), clients: List[String] = List())
+  case class User(email: String, rights: List[String] = List(), accounts: List[String] = List())
 
   def Authenticated[A](p: BodyParser[A])(requiredRight: Option[String])(f: User => Request[A] => Result) = {
     CORSAction {
@@ -45,7 +45,7 @@ object Security {
             val currentDate: DateTime = new DateTime()
             if (endDate.isBefore(currentDate)) Unauthorized
             else Async {
-              usersColl.find(Json.obj("email" -> email)).one[JsObject].map {
+              usersColl.find(Json.obj("email" -> email.toLowerCase)).one[JsObject].map {
                 case None => Unauthorized(Json.obj("error" -> "This user doesn't exist in the database"))
                 case Some(user) => {
                   logger.debug("User found in the database : " + user)
@@ -53,27 +53,28 @@ object Security {
                   requiredRight match {
                     case None => f(User(email))(request)
                     case Some(right) => {
-                      val profiles = (user \ "profiles").asOpt[List[String]].getOrElse(Nil)
+                      val profiles = (user \ "profiles").asOpt[List[JsObject]].getOrElse(Nil)
                       logger.debug("Profiles: " + profiles)
 
-                      val rights = convertProfilesToRights(profiles)
+                      val roles = for {
+                        profile <- profiles
+                        role <- (profile \ "role").asOpt[String]
+                      } yield role
+
+                      val rights = convertProfilesToRights(roles)
                       logger.debug("Rights: " + rights)
 
-                      if (!(rights contains right))
-                        Unauthorized(Json.obj("error" -> JsString(email + " doesn't have the right " + right)))
-                      else Async {
-                        val clientList = accountsColl.find(Json.obj("contacts" -> Json.obj("email" -> email))).
-                          projection(Json.obj("_id" -> 1)).
-                          cursor[JsObject].
-                          toList
-                        clientList.map {
-                          clients => {
-                            val clientIdList = clients.flatMap(client => (client \ "_id" \ "$oid").asOpt[String])
-                            logger.debug("ClientIdList: " + clientIdList)
+                      val accounts = for {
+                        profile <- profiles
+                        account <- (profile \ "account").asOpt[String]
+                      } yield account
+                      logger.debug(s"Accounts: $accounts")
 
-                            f(User(email, rights, clientIdList))(request)
-                          }
-                        }
+                      if (!(rights contains right)) {
+                        Unauthorized(Json.obj("error" -> JsString(email + " doesn't have the right " + right)))
+                      }
+                      else {
+                        f(User(email, rights, accounts))(request)
                       }
                     }
                   }

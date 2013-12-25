@@ -95,7 +95,7 @@ object Fabrications extends Controller with MongoController {
   def list = Authenticated(Some("READ_FABRICATION")) { user => request =>
     Async {
       val clientFilter = if (user.rights contains "ADMIN") Json.obj()
-        else Json.obj("client._id" -> Json.obj("$in" -> user.clients))
+        else Json.obj("client._id" -> Json.obj("$in" -> user.accounts))
       val fabFutureList = fabCollection.find(clientFilter)
       .sort(Json.obj("_id" -> 1))
       .cursor[JsObject]
