@@ -157,8 +157,19 @@ object Fabrications extends Controller with MongoController {
       case _ => BadRequest
     }
   }
-
   def getAttachment(idFab: String, idAtt: String) = Authenticated(Some("READ_FABRICATION")) { user => request =>
-    Ok.sendFile(new File("uploadedFiles/fabrications/" + idFab + "/" + idAtt))
+    if (user.rights contains "ADMIN")
+      Ok.sendFile(new File("uploadedFiles/fabrications/" + idFab + "/" + idAtt))
+    else {
+      Async {
+        fabCollection.find(Json.obj(
+          "_id" -> idFab,
+          "client._id" -> Json.obj("$in" -> user.accounts)
+        )).one[JsObject].map {
+          case Some(fab) => Ok.sendFile(new File("uploadedFiles/fabrications/" + idFab + "/" + idAtt))
+          case None => Forbidden
+        }
+      }
+    }
   }
 }
