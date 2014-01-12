@@ -2,27 +2,29 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-OPTIONS        /api/*url                                          controllers.Cors.option(url: String)
+OPTIONS        /api/*url                                                        controllers.Cors.option(url: String)
 
-POST           /api/tokens                                        controllers.Auth.login
-DELETE         /api/tokens                                        controllers.Auth.logout
+POST           /api/tokens                                                      controllers.Auth.login
+DELETE         /api/tokens                                                      controllers.Auth.logout
 
-POST           /api/accounts                                      controllers.Accounts.createAccount
-GET            /api/accounts                                      controllers.Accounts.listAccounts
-GET            /api/accounts/:id                                  controllers.Accounts.getAccount(id: String)
-PUT            /api/accounts/:id                                  controllers.Accounts.updateAccount(id: String)
+GET            /api/profiles                                                    controllers.Auth.getProfilesWithRights
 
-POST           /api/fabrications                                  controllers.Fabrications.create
-GET            /api/fabrications                                  controllers.Fabrications.list
-GET            /api/fabrications/:id                              controllers.Fabrications.getOne(id: String)
-PUT            /api/fabrications/:id                              controllers.Fabrications.updateOne(id: String)
-POST           /api/fabrications/:idFab/attachments               controllers.Fabrications.saveAttachment(idFab: String)
-GET            /api/fabrications/:idFab/attachments/:idAtt        controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
+POST           /api/accounts                                                    controllers.Accounts.createAccount
+GET            /api/accounts                                                    controllers.Accounts.listAccounts
+GET            /api/accounts/:id                                                controllers.Accounts.getAccount(id: String)
+PUT            /api/accounts/:id                                                controllers.Accounts.updateAccount(id: String)
 
-PUT            /api/users/:email/accounts/:idAccount/profiles/:idProfile  controllers.Users.addProfile(email: String, idAccount: String, idProfile: String)
-DELETE         /api/users/:email/accounts/:idAccount/profiles/:idProfile  controllers.Users.delProfile(email: String, idAccount: String, idProfile: String)
+POST           /api/fabrications                                                controllers.Fabrications.create
+GET            /api/fabrications                                                controllers.Fabrications.list
+GET            /api/fabrications/:id                                            controllers.Fabrications.getOne(id: String)
+PUT            /api/fabrications/:id                                            controllers.Fabrications.updateOne(id: String)
+POST           /api/fabrications/:idFab/attachments                             controllers.Fabrications.saveAttachment(idFab: String)
+GET            /api/fabrications/:idFab/attachments/:idAtt                      controllers.Fabrications.getAttachment(idFab: String, idAtt: String)
 
-GET            /api/test                                          controllers.Test.test
+PUT            /api/users/:email/accounts/:idAccount/profiles/:idProfile        controllers.Users.addProfile(email: String, idAccount: String, idProfile: String)
+DELETE         /api/users/:email/accounts/:idAccount/profiles/:idProfile        controllers.Users.delProfile(email: String, idAccount: String, idProfile: String)
+
+GET            /api/test                                                        controllers.Test.test
 
 # Map static resources from the /public folder to the /assets URL path
-GET            /*file                                             controllers.Assets.at(path="/public", file)
+GET            /*file                                                           controllers.Assets.at(path="/public", file)

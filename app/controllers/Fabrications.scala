@@ -94,8 +94,18 @@ object Fabrications extends Controller with MongoController {
 
   def list = Authenticated(Some("READ_FABRICATION")) { user => request =>
     Async {
-      val clientFilter = if (user.rights contains "ADMIN") Json.obj()
-        else Json.obj("client._id" -> Json.obj("$in" -> user.accounts))
+      val clientFilter = if (user.profiles.exists(_.rights.contains("FABRICATION_MANAGER"))) {
+        logger.debug("User has the right FABRICATION_MANAGER")
+        Json.obj()
+      }
+      else {
+        val availableAccounts = for {
+          profile <- user.profiles.filter(_.rights.contains("READ_FABRICATION"))
+        } yield profile.account
+        logger.debug(s"available accounts for user ${user.email}: $availableAccounts" +
+          s"")
+        Json.obj("client._id" -> Json.obj("$in" -> availableAccounts))
+      }
       val fabFutureList = fabCollection.find(clientFilter)
       .sort(Json.obj("_id" -> 1))
       .cursor[JsObject]
@@ -157,14 +167,19 @@ object Fabrications extends Controller with MongoController {
       case _ => BadRequest
     }
   }
+
   def getAttachment(idFab: String, idAtt: String) = Authenticated(Some("READ_FABRICATION")) { user => request =>
-    if (user.rights contains "ADMIN")
+    if (user.profiles.exists(_.rights.contains("FABRICATION_MANAGER")))
       Ok.sendFile(new File("uploadedFiles/fabrications/" + idFab + "/" + idAtt))
     else {
+      val availableAccounts = for {
+        profile <- user.profiles.filter(_.rights.contains("READ_FABRICATION"))
+      } yield profile.account
+
       Async {
         fabCollection.find(Json.obj(
           "_id" -> idFab,
-          "client._id" -> Json.obj("$in" -> user.accounts)
+          "client._id" -> Json.obj("$in" -> availableAccounts)
         )).one[JsObject].map {
           case Some(fab) => Ok.sendFile(new File("uploadedFiles/fabrications/" + idFab + "/" + idAtt))
           case None => Forbidden

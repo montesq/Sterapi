@@ -15,6 +15,8 @@ import play.api.libs.Crypto._
 import java.lang.System
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
+import actions.Security._
+
 
 object Auth extends Controller with MongoController {
 
@@ -72,5 +74,12 @@ object Auth extends Controller with MongoController {
     val dateFormatter = ISODateTimeFormat.dateTime()
     val endDate = dateFormatter.print(new DateTime(endTimeStamp))
     encryptAES(Json.obj("email" -> email, "endDate" -> endDate).toString)
+  }
+
+  def getProfilesWithRights = Authenticated(None){ user => request =>
+    val profilesList = for {
+      profile <- user.profiles
+    } yield Json.toJson(profile)
+    Ok(Json.toJson(profilesList))
   }
 }
